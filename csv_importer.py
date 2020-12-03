@@ -16,9 +16,14 @@ class App():
         self.__v = tk.StringVar()
         self.__v.set(1)
 
-        self.w = tk.Listbox(self.root)
+        self.w = tk.LabelFrame(self.root)
         self.w.pack(padx= 10, pady = 10)
-        self.text_label_frame = tk.LabelFrame(self.w, relief = tk.FLAT, labelanchor = "nw", padx = 10, pady = 10)
+        self.text_label_frame = tk.Listbox(self.w, width = 100)
+        scrollbar = tk.Scrollbar(self.w) 
+        scrollbar.pack(side = tk.RIGHT, fill = tk.BOTH)
+        self.text_label_frame.config(xscrollcommand = scrollbar.set)
+        self.text_label_frame.config(yscrollcommand = scrollbar.set)
+        scrollbar.config(command = self.text_label_frame.yview) 
         self.text_label_frame.pack(side=tk.RIGHT,padx= 10, pady = 10)
 
         self.menu = tk.Menu(self.root)
@@ -60,8 +65,7 @@ class App():
     
     def print_file_names(self, file_arr):
         for file_name in file_arr:
-            opened_file = tk.Label(self.text_label_frame, text = file_name)
-            opened_file.pack(side=tk.TOP, padx=5,pady=5)
+            self.text_label_frame.insert(1, file_name)
             
     def RemoveFile(self):
         self.menu_window = tk.Toplevel()

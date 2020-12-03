@@ -7,6 +7,9 @@ from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 
 class model():
+    """This class provides the functionality of the project according to the 
+    model-view-separation principle"""
+    
     def __init__(self):
         self.__opened_files_arr = []
         self.__index = 1
@@ -60,6 +63,7 @@ class model():
         return self
     
 class view(model):
+    """This class is responsible for the GUI"""
     
     def __init__(self):
 

@@ -12,31 +12,44 @@ class model():
     
     def __init__(self):
         self.__opened_files_arr = []
-        self.__index = 1
+        self.__index = 0
+        self.__multiple_files_counter = 0
         
-    def OpenFiles(self, listbox): 
+    def OpenFiles(self, listbox):
         self.__names = askopenfilenames()
         for name in self.__names:
             if name.endswith('.pdf'):
-                self.__opened_files_arr.append(name)
-                listbox.insert(self.__index, name)
+                if name in self.__opened_files_arr:
+                    self.__opened_files_arr.append(name+"_"+str(self.__multiple_files_counter))
+                    listbox.insert(self.__index, name+"_"+str(self.__multiple_files_counter))
+                    self.__multiple_files_counter +=1
+                else:
+                    self.__opened_files_arr.append(name)
+                    listbox.insert(self.__index, name)
                 self.__index += 1
             else:
                 showwarning("Warning", "Only PDF Files are allowed!")
         return self
                 
     def RemoveFiles(self, listbox):
-        selected_elem = listbox.curselection()
-        if selected_elem == ():
+        selected_elems = listbox.curselection()
+        if selected_elems == ():
             return
-        selected_elem_name = listbox.get(listbox.curselection())
-        listbox.delete(selected_elem)
-        self.__opened_files_arr.remove(selected_elem_name)
+        for elem in selected_elems[::-1]:
+            elem_name = listbox.get(elem)
+            self.__opened_files_arr.remove(elem_name)
+            listbox.delete(elem)
+            
+        if len(self.__opened_files_arr) == 0:
+            self.__index = 0
+        print(self.__opened_files_arr)
+        print(self.__index)   
         return self
            
     def ClearAllFiless(self, listbox):
         listbox.delete(0, self.__index)
         self.__opened_files_arr.clear()
+        self.__index = 0
         return self
     
     def MergeFiless(self):
@@ -46,6 +59,9 @@ class model():
         pdfWriter = PdfFileWriter()
 
         for filename in self.__opened_files_arr:
+            if filename.endswith("_", -2, -1):
+                filename = filename[:-2:]
+            
             pdfFileObj = open(filename, 'rb')
             pdfReader = PdfFileReader(pdfFileObj)
 
@@ -57,6 +73,8 @@ class model():
         save_file = asksaveasfilename(defaultextension=".pdf",
             filetypes=[("PDF file", "*.pdf")],
             initialfile="merged.pdf")
+        if save_file == "":
+            return
         pdfOutput = open(save_file, 'wb')
         pdfWriter.write(pdfOutput)
         pdfOutput.close()
@@ -68,16 +86,20 @@ class view(model):
     def __init__(self):
 
         self.root = tk.Tk()
+        self.root.minsize(1000, 300) 
         super().__init__()
                 
         self.main_labelFrame = tk.LabelFrame(self.root, text="PDF-Merger")
         self.main_labelFrame.pack(padx= 10, pady = 10)
-        self.listbox = tk.Listbox(self.main_labelFrame, width = 100)
-        scrollbar = tk.Scrollbar(self.main_labelFrame) 
-        scrollbar.pack(side = tk.RIGHT, fill = tk.BOTH)
-        self.listbox.config(xscrollcommand = scrollbar.set)
-        self.listbox.config(yscrollcommand = scrollbar.set)
-        scrollbar.config(command = self.listbox.yview) 
+        self.listbox = tk.Listbox(self.main_labelFrame, width = 100, selectmode=tk.MULTIPLE)
+        scrollbar_x = tk.Scrollbar(self.main_labelFrame, orient="horizontal")
+        scrollbar_y = tk.Scrollbar(self.main_labelFrame)
+        scrollbar_x.pack(side = tk.BOTTOM, fill = tk.BOTH)
+        scrollbar_y.pack(side = tk.RIGHT, fill = tk.BOTH)
+        self.listbox.config(xscrollcommand = scrollbar_x.set)
+        self.listbox.config(yscrollcommand = scrollbar_y.set)
+        scrollbar_x.config(command = self.listbox.xview)
+        scrollbar_y.config(command = self.listbox.yview)
         self.listbox.pack(side=tk.RIGHT,padx= 10, pady = 10)
 
         self.menu = tk.Menu(self.root)

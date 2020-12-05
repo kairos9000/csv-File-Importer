@@ -15,6 +15,11 @@ class model():
         self.__opened_files_arr = []
         self.__index = 0
         self.__multiple_files_counter = 0
+        #  TODO: try:
+               
+        #        except Datei kann nicht codiert werden error:
+                
+        #        except Datei kann nicht geöffnet werden error:
 
     def OpenFilesFunctionality(self, listbox):
         self.__names = askopenfilenames()
@@ -90,12 +95,12 @@ class view(model):
         self.root.minsize(1000, 300)
         super().__init__()
 
-        self.main_labelFrame = tk.LabelFrame(self.root, text="CSV-Importer")
-        self.main_labelFrame.pack(padx=10, pady=10)
+        self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="CSV-Importer")
+        self.CSV_Importer_Labelframe.pack(padx=10, pady=10)
         self.listbox = tk.Listbox(
-            self.main_labelFrame, width=100, selectmode=tk.MULTIPLE)
-        scrollbar_x = tk.Scrollbar(self.main_labelFrame, orient="horizontal")
-        scrollbar_y = tk.Scrollbar(self.main_labelFrame)
+            self.CSV_Importer_Labelframe, width=100, selectmode=tk.MULTIPLE)
+        scrollbar_x = tk.Scrollbar(self.CSV_Importer_Labelframe, orient="horizontal")
+        scrollbar_y = tk.Scrollbar(self.CSV_Importer_Labelframe)
         scrollbar_x.pack(side=tk.BOTTOM, fill=tk.BOTH)
         scrollbar_y.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.listbox.config(xscrollcommand=scrollbar_x.set)
@@ -103,6 +108,9 @@ class view(model):
         scrollbar_x.config(command=self.listbox.xview)
         scrollbar_y.config(command=self.listbox.yview)
         self.listbox.pack(side=tk.RIGHT, padx=10, pady=10)
+        #TODO: listbox und entry mit einzelnen labelframes trennen und encoding angeben ermöglichen
+        self.encoding_textbox = tk.Entry(self.CSV_Importer_Labelframe, width=100)
+        self.encoding_textbox.pack(padx=5,pady=5, side=tk.BOTTOM)
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -112,13 +120,13 @@ class view(model):
         self.helpMenu.add_command(label="About", command=self.About)
 
         self.button_addFile = tk.Button(
-            self.main_labelFrame, text="Add CSV-File", command=self.OpenFileGUI)
+            self.CSV_Importer_Labelframe, text="Add CSV-File", command=self.OpenFileGUI)
         self.button_addFile.pack(side=tk.TOP, padx=5, pady=(25, 5))
         self.button_removeFile = tk.Button(
-            self.main_labelFrame, text="Remove selected File/s", command=self.RemoveFileGUI)
+            self.CSV_Importer_Labelframe, text="Remove selected File/s", command=self.RemoveFileGUI)
         self.button_removeFile.pack(side=tk.TOP, padx=5, pady=5)
         self.button_removeAllFiles = tk.Button(
-            self.main_labelFrame, text="Remove all Files", command=self.ClearAllFilesGUI)
+            self.CSV_Importer_Labelframe, text="Remove all Files", command=self.ClearAllFilesGUI)
         self.button_removeAllFiles.pack(side=tk.TOP, padx=5, pady=5)
 
         self.button_exit = tk.Button(

@@ -2,6 +2,7 @@
 
 
 import tkinter as tk
+from tkinter import ttk 
 from tkinter.messagebox import showwarning, showinfo
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -15,11 +16,26 @@ class model():
         self.__opened_files_arr = []
         self.__index = 0
         self.__multiple_files_counter = 0
+        self.encodings_list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
+                               "ISO-8859-1", "ISO-8859-2", "ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-2022-CN", "ISO-2022-KR", "ISO-2022-JP",
+                               "windows-1251",  "windows-1250", "windows-1251",  "windows-1252", "windows-1253",  "windows-1255", 
+                               "GB2312", "GB18030", 
+                               "Big5",
+                               "EUC-KR", "EUC-TW", "EUC-JP",
+                               "HZ-GB-2312",
+                               "SHIFT_JIS",  
+                               "KOI8-R",
+                               "MacCyrillic",
+                               "IBM855", "IBM866",
+                               "TIS-620"
+                                ]
         #  TODO: try:
                
         #        except Datei kann nicht codiert werden error:
                 
         #        except Datei kann nicht geöffnet werden error:
+    def getEncodingsList(self):
+        return self.encodings_list
 
     def OpenFilesFunctionality(self, listbox):
         self.__names = askopenfilenames()
@@ -109,8 +125,8 @@ class view(model):
         scrollbar_y.config(command=self.listbox.yview)
         self.listbox.pack(side=tk.RIGHT, padx=10, pady=10)
         #TODO: listbox und entry mit einzelnen labelframes trennen und encoding angeben ermöglichen
-        self.encoding_textbox = tk.Entry(self.CSV_Importer_Labelframe, width=100)
-        self.encoding_textbox.pack(padx=5,pady=5, side=tk.BOTTOM)
+        self.encoding_dropdownlist = ttk.Combobox(self.CSV_Importer_Labelframe, state="readonly", values=super().getEncodingsList())
+        self.encoding_dropdownlist.pack(padx=5,pady=5, side=tk.BOTTOM)
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)

@@ -2,8 +2,11 @@
 
 
 import tkinter as tk
+import pandas as pd
+import io
 from tkinter import ttk 
-from tkinter.messagebox import showwarning, showinfo
+from pandastable import Table
+from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 
@@ -37,7 +40,7 @@ class model():
     def getEncodingsList(self):
         return self.encodings_list
 
-    def OpenFilesFunctionality(self, listbox):
+    def ShowFilesFunctionality(self, listbox):
         self.__names = askopenfilenames()
         for name in self.__names:
             if name.endswith('.csv'):
@@ -54,6 +57,20 @@ class model():
             else:
                 showwarning("Warning", "Only CSV Files are allowed!")
         return self
+    
+    def OpenFilesFunctionality(self, encoding, table):
+        for filename in self.__opened_files_arr:
+            # if filename.endswith("_", -2, -1):
+            #     filename = filename[:-2:]
+            try:
+                self.__csv_file = pd.read_csv(filename, encoding=encoding)
+                table.importCSV(filename)
+            
+            except OSError as e:
+                showerror("Error!", e)
+                
+            
+            
 
     def RemoveFilesFunctionality(self, listbox):
         selected_elems = listbox.curselection()
@@ -78,9 +95,9 @@ class model():
         if len(self.__opened_files_arr) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
-        save_file = asksaveasfilename(defaultextension=".csv",
-                                      filetypes=[("CSV file", "*.csv")],
-                                      initialfile="import.csv")
+        # save_file = asksaveasfilename(defaultextension=".csv",
+        #                               filetypes=[("CSV file", "*.csv")],
+        #                               initialfile="import.csv")
         # pdfWriter = PdfFileWriter()
 
         # for filename in self.__opened_files_arr:
@@ -113,20 +130,35 @@ class view(model):
 
         self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="CSV-Importer")
         self.CSV_Importer_Labelframe.pack(padx=10, pady=10)
+        
+        self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
+        self.preview_table_Labelframe.pack(padx=10, pady=10, side=tk.BOTTOM)
+       
+        
+        file_buttons_frame = tk.Frame(self.CSV_Importer_Labelframe)
+        file_buttons_frame.pack(side=tk.LEFT)
+        listbox_frame = tk.Frame(self.CSV_Importer_Labelframe)
+        listbox_frame.pack(side=tk.TOP)
+        encodings_frame = tk.Frame(self.CSV_Importer_Labelframe)
+        encodings_frame.pack(side=tk.BOTTOM)
+        
         self.listbox = tk.Listbox(
-            self.CSV_Importer_Labelframe, width=100, selectmode=tk.MULTIPLE)
-        scrollbar_x = tk.Scrollbar(self.CSV_Importer_Labelframe, orient="horizontal")
-        scrollbar_y = tk.Scrollbar(self.CSV_Importer_Labelframe)
+            listbox_frame, width=100, selectmode=tk.MULTIPLE)
+        scrollbar_x = tk.Scrollbar(listbox_frame, orient="horizontal")
+        scrollbar_y = tk.Scrollbar(listbox_frame)
         scrollbar_x.pack(side=tk.BOTTOM, fill=tk.BOTH)
         scrollbar_y.pack(side=tk.RIGHT, fill=tk.BOTH)
         self.listbox.config(xscrollcommand=scrollbar_x.set)
         self.listbox.config(yscrollcommand=scrollbar_y.set)
         scrollbar_x.config(command=self.listbox.xview)
         scrollbar_y.config(command=self.listbox.yview)
-        self.listbox.pack(side=tk.RIGHT, padx=10, pady=10)
-        #TODO: listbox und entry mit einzelnen labelframes trennen und encoding angeben ermöglichen
-        self.encoding_dropdownlist = ttk.Combobox(self.CSV_Importer_Labelframe, state="readonly", values=super().getEncodingsList())
+        self.listbox.pack(side=tk.BOTTOM, padx=10, pady=10)
+        encodings_dropdownlist_label = tk.Label(encodings_frame, text="CSV-Encodings: ")
+        encodings_dropdownlist_label.pack(side=tk.LEFT)
+        self.encoding_value = tk.StringVar()
+        self.encoding_dropdownlist = ttk.Combobox(encodings_frame, state="readonly", textvariable=self.encoding_value, values=super().getEncodingsList())     
         self.encoding_dropdownlist.pack(padx=5,pady=5, side=tk.BOTTOM)
+        self.encoding_value.set("UTF-8")
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -136,14 +168,17 @@ class view(model):
         self.helpMenu.add_command(label="About", command=self.About)
 
         self.button_addFile = tk.Button(
-            self.CSV_Importer_Labelframe, text="Add CSV-File", command=self.OpenFileGUI)
-        self.button_addFile.pack(side=tk.TOP, padx=5, pady=(25, 5))
+            file_buttons_frame, text="Add CSV-File", command=self.OpenFileGUI)
+        self.button_addFile.pack(side=tk.TOP, padx=5, pady=5)
         self.button_removeFile = tk.Button(
-            self.CSV_Importer_Labelframe, text="Remove selected File/s", command=self.RemoveFileGUI)
+            file_buttons_frame, text="Remove selected File/s", command=self.RemoveFileGUI)
         self.button_removeFile.pack(side=tk.TOP, padx=5, pady=5)
         self.button_removeAllFiles = tk.Button(
-            self.CSV_Importer_Labelframe, text="Remove all Files", command=self.ClearAllFilesGUI)
+            file_buttons_frame, text="Remove all Files", command=self.ClearAllFilesGUI)
         self.button_removeAllFiles.pack(side=tk.TOP, padx=5, pady=5)
+        
+        self.preview_table = Table(self.preview_table_Labelframe)
+        self.preview_table.show()
 
         self.button_exit = tk.Button(
             self.root, text="Cancel", command=self.root.quit)
@@ -158,7 +193,8 @@ class view(model):
         self.root.mainloop()
 
     def OpenFileGUI(self):
-        super().OpenFilesFunctionality(self.listbox)
+        super().ShowFilesFunctionality(self.listbox)
+        super().OpenFilesFunctionality(self.encoding_value.get(), self.preview_table)
 
     def RemoveFileGUI(self):
         super().RemoveFilesFunctionality(self.listbox)

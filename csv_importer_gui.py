@@ -6,93 +6,77 @@ import pandas as pd
 import io
 from tkinter import ttk 
 from pandastable import Table
+import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 
 
-class model():
+class model_interface():
     """This class provides the functionality of the project according to the 
     model-view-separation principle"""
 
     def __init__(self):
-        self.__opened_files_arr = []
-        self.__index = 0
-        self.__multiple_files_counter = 0
-        self.encodings_list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
-                               "ISO-8859-1", "ISO-8859-2", "ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-2022-CN", "ISO-2022-KR", "ISO-2022-JP",
-                               "windows-1251",  "windows-1250", "windows-1251",  "windows-1252", "windows-1253",  "windows-1255", 
-                               "GB2312", "GB18030", 
-                               "Big5",
-                               "EUC-KR", "EUC-TW", "EUC-JP",
-                               "HZ-GB-2312",
-                               "SHIFT_JIS",  
-                               "KOI8-R",
-                               "MacCyrillic",
-                               "IBM855", "IBM866",
-                               "TIS-620"
-                                ]
-        #  TODO: try:
-               
-        #        except Datei kann nicht codiert werden error:
-                
-        #        except Datei kann nicht geöffnet werden error:
+        self.model = cxi.model()
+        self.index = 0
+        
     def getEncodingsList(self):
-        return self.encodings_list
+        return self.model.getEncodingsListFunctionality()
+    
+    def getDataframe(self):
+        return self.model.getDataframeFunctionality()
 
-    def ShowFilesFunctionality(self, listbox):
-        self.__names = askopenfilenames()
-        for name in self.__names:
-            if name.endswith('.csv'):
-                if name in self.__opened_files_arr:
-                    self.__opened_files_arr.append(
-                        name+"_"+str(self.__multiple_files_counter))
-                    listbox.insert(self.__index, name+"_" +
-                                   str(self.__multiple_files_counter))
-                    self.__multiple_files_counter += 1
-                else:
-                    self.__opened_files_arr.append(name)
-                    listbox.insert(self.__index, name)
-                self.__index += 1
-            else:
-                showwarning("Warning", "Only CSV Files are allowed!")
+    def ShowFilesInterface(self, listbox):
+        try:
+           
+            self.__names = askopenfilenames()
+            for filename in self.__names:
+                self.__filenames = self.model.ShowFilesFunctionality(filename)
+            listbox.delete(0, self.index)
+            for name in self.__filenames:
+                    listbox.insert(self.index, name)
+                    self.index += 1   
+        except OSError:
+            showerror("Error!", "File could not be opened!")
+        except ValueError:
+            showerror("Error!", "Only CSV Files are allowed!")
+
         return self
     
-    def OpenFilesFunctionality(self, encoding, table):
-        for filename in self.__opened_files_arr:
-            # if filename.endswith("_", -2, -1):
-            #     filename = filename[:-2:]
-            try:
-                self.__csv_file = pd.read_csv(filename, encoding=encoding)
-                table.importCSV(filename)
+    def OpenFilesInterface(self, encoding, table, listbox):
+        try:
+            self.__csv_file = self.model.OpenFilesFunctionality(encoding)
+        #         table.redraw()
+                
             
-            except OSError as e:
-                showerror("Error!", e)
+        except OSError as e:
+            listbox.delete(self.index-1)
+            showerror("Error!", e)
                 
             
             
 
-    def RemoveFilesFunctionality(self, listbox):
+    def RemoveFilesInterface(self, listbox):
         selected_elems = listbox.curselection()
         if selected_elems == ():
             return
         for elem in selected_elems[::-1]:
             elem_name = listbox.get(elem)
-            self.__opened_files_arr.remove(elem_name)
+            self.model.RemoveFilesFunctionality(elem_name)
             listbox.delete(elem)
 
-        if len(self.__opened_files_arr) == 0:
+        if len(self.model.opened_files_arr) == 0:
             self.__index = 0
         return self
 
-    def ClearAllFilesFunctionality(self, listbox):
+    def ClearAllFilesInterface(self, listbox):
         listbox.delete(0, self.__index)
-        self.__opened_files_arr.clear()
+        self.model.ClearAllFilesFunctionality()
         self.__index = 0
         return self
 
-    def MergeFilesFunctionality(self):
-        if len(self.__opened_files_arr) == 0:
+    def MergeFilesInterface(self):
+        if len(self.model.opened_files_arr) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
         # save_file = asksaveasfilename(defaultextension=".csv",
@@ -119,7 +103,7 @@ class model():
         return self
 
 
-class view(model):
+class view(model_interface):
     """This class is responsible for the GUI"""
 
     def __init__(self):
@@ -177,7 +161,7 @@ class view(model):
             file_buttons_frame, text="Remove all Files", command=self.ClearAllFilesGUI)
         self.button_removeAllFiles.pack(side=tk.TOP, padx=5, pady=5)
         
-        self.preview_table = Table(self.preview_table_Labelframe)
+        self.preview_table = Table(self.preview_table_Labelframe, dataframe=super().getDataframe())
         self.preview_table.show()
 
         self.button_exit = tk.Button(
@@ -193,17 +177,21 @@ class view(model):
         self.root.mainloop()
 
     def OpenFileGUI(self):
-        super().ShowFilesFunctionality(self.listbox)
-        super().OpenFilesFunctionality(self.encoding_value.get(), self.preview_table)
+        try:
+            super().ShowFilesInterface(self.listbox)
+            super().OpenFilesInterface(self.encoding_value.get(), self.preview_table, self.listbox)
+            #self.preview_table.updateModel(self.Functionality.getDataframe())
+        except OSError as e:
+            showerror("Error!", e)
 
     def RemoveFileGUI(self):
-        super().RemoveFilesFunctionality(self.listbox)
+        super().RemoveFilesInterface(self.listbox)
 
     def ClearAllFilesGUI(self):
-        super().ClearAllFilesFunctionality(self.listbox)
+        super().ClearAllFilesInterface(self.listbox)
 
     def MergeFilesGUI(self):
-        super().MergeFilesFunctionality()
+        super().MergeFilesInterface()
 
     def About(self):
         print("This is a simple example of a menu")

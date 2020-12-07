@@ -18,7 +18,7 @@ class model_interface():
 
     def __init__(self):
         self.model = cxi.model()
-        self.index = 0
+        self.__index = 0
         
     def getEncodingsList(self):
         return self.model.getEncodingsListFunctionality()
@@ -32,10 +32,10 @@ class model_interface():
             self.__names = askopenfilenames()
             for filename in self.__names:
                 self.__filenames = self.model.ShowFilesFunctionality(filename)
-            listbox.delete(0, self.index)
+            listbox.delete(0, self.__index)
             for name in self.__filenames:
-                    listbox.insert(self.index, name)
-                    self.index += 1   
+                    listbox.insert(self.__index, name)
+                    self.__index += 1   
         except OSError:
             showerror("Error!", "File could not be opened!")
         except ValueError:
@@ -50,7 +50,7 @@ class model_interface():
                 
             
         except OSError as e:
-            listbox.delete(self.index-1)
+            listbox.delete(self.__index-1)
             showerror("Error!", e)
                 
             

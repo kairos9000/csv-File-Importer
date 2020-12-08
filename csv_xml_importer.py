@@ -37,14 +37,14 @@ class model():
                                "IBM855", "IBM866",
                                "TIS-620"
                                 ]
-        self.csv_file : pd.DataFrame()
+        self.main_dataframe : pd.DataFrame()
         self.column_amount : int = 0
                 
     def getEncodingsListFunctionality(self):
         return self.encodings_list
     
     def getDataframeFunctionality(self):
-        return self.csv_file
+        return self.main_dataframe
 
     def ImportCSVFiles(self, filename:str):
         if filename.endswith('.csv'):
@@ -67,41 +67,46 @@ class model():
             return has_header, dialect
     
     def OpenCSVFiles(self, encoding:str = None, hasHeader:bool = None):
-        self.csv_file = None
+        self.main_dataframe = pd.DataFrame()
         for filename in self.opened_files_arr:
+            if filename.endswith("_", -2, -1):
+                filename = filename[:-2:]
             if encoding not in self.encodings_list or encoding == None:
                 print("No encoding or not available encoding chosen; encoding will be guessed from File")
                 enc = detect(Path(filename).read_bytes())
                 encoding = enc["encoding"]
             hasSniffHeader, dialect = self.csvSniffer(filename)
-            print(dialect.delimiter)
-            if not hasHeader:
-                header = None
-            elif hasSniffHeader or hasHeader:
-                header = "infer"
+            print(hasSniffHeader)
+            
+            
+            if hasSniffHeader or hasHeader:
+                header = "infer" 
             else:
                 header = None
-
-            if filename.endswith("_", -2, -1):
-                filename = filename[:-2:]
+            if not self.main_dataframe.empty:
+                header = None
+            
             try:
-                new_csv_file = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
-                column_amount = len(new_csv_file.columns)
+                print(header)
+                new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
+                column_amount = len(new_dataframe.columns)
                 
-                if self.csv_file == None:
-                    self.csv_file = new_csv_file
+                if self.main_dataframe.empty:
+                    self.main_dataframe = new_dataframe
                     self.column_amount = column_amount
                 else:
                     if self.column_amount is not column_amount:
                         raise ValueError("The csv-Files have different column amounts")
+
                     else:
-                        self.csv_file = self.csv_file.append(new_csv_file)
+                        new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
+                        self.main_dataframe = self.main_dataframe.append(new_dataframe.rename(columns=new_cols))
                 
             
             except OSError as e:
                 self.opened_files_arr.remove(filename)
                 raise OSError(e)
-        return self.csv_file               
+        return self.main_dataframe               
             
             
 

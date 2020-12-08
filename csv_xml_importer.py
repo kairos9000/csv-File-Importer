@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#TODO: mit csv-Sniffer auseinandersetzen
 #TODO: Parameter von csv-Dateien ändern können
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
 #TODO: verschiedene Ausgaben realisieren
@@ -7,11 +6,14 @@
 import tkinter as tk
 import pandas as pd
 import io
+import csv
 from tkinter import ttk 
 from pandastable import Table
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
+from pathlib import Path
+from chardet import detect
 
 
 class model():
@@ -19,10 +21,10 @@ class model():
     model-view-separation principle"""
 
     def __init__(self):
-        self.opened_files_arr = []
+        self.opened_files_arr : list =  []
         
-        self.multiple_files_counter = 0
-        self.encodings_list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
+        self.multiple_files_counter : int = 0
+        self.encodings_list : list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
                                "ISO-8859-1", "ISO-8859-2", "ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-2022-CN", "ISO-2022-KR", "ISO-2022-JP",
                                "windows-1251",  "windows-1250", "windows-1251",  "windows-1252", "windows-1253",  "windows-1255", 
                                "GB2312", "GB18030", 
@@ -35,7 +37,8 @@ class model():
                                "IBM855", "IBM866",
                                "TIS-620"
                                 ]
-        self.csv_file = pd.DataFrame()
+        self.csv_file : pd.DataFrame()
+        self.column_amount : int = 0
                 
     def getEncodingsListFunctionality(self):
         return self.encodings_list
@@ -43,7 +46,7 @@ class model():
     def getDataframeFunctionality(self):
         return self.csv_file
 
-    def ShowFilesFunctionality(self, filename):
+    def ImportCSVFiles(self, filename:str):
         if filename.endswith('.csv'):
             if filename in self.opened_files_arr:
                 self.opened_files_arr.append(
@@ -56,18 +59,43 @@ class model():
             raise ValueError
         return self.opened_files_arr
     
-    def OpenFilesFunctionality(self, encoding="UTF-8"):
-        if encoding not in self.encodings_list:
-            print("""Encoding could not be identified;
-                  call .getEncodingsListFunctionality() to see a list of possible encodings.""")
-            return
-        
+    def csvSniffer(self, filename: str):
+        with open(filename, "r") as sniffing_file:
+            header_line = sniffing_file.readline()
+            has_header = csv.Sniffer().has_header(header_line)
+            dialect = csv.Sniffer().sniff(sniffing_file.read(1024))
+            return has_header, dialect
+    
+    def OpenCSVFiles(self, encoding:str = None, hasHeader:bool = None):
+        self.csv_file = None
         for filename in self.opened_files_arr:
+            if encoding not in self.encodings_list or encoding == None:
+                print("No encoding or not available encoding chosen; encoding will be guessed from File")
+                enc = detect(Path(filename).read_bytes())
+                encoding = enc["encoding"]
+            hasSniffHeader, dialect = self.csvSniffer(filename)
+            print(dialect)
+            if not hasHeader:
+                header = None
+            elif hasSniffHeader or hasHeader:
+                header = "infer"
+            else:
+                header = None
+
             if filename.endswith("_", -2, -1):
                 filename = filename[:-2:]
             try:
-                new_csv_file = pd.read_csv(filename, encoding=encoding, header=None)
-                self.csv_file = pd.concat([self.csv_file, new_csv_file])
+                new_csv_file = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
+                column_amount = len(new_csv_file.columns)
+                
+                if self.csv_file == None:
+                    self.csv_file = new_csv_file
+                    self.column_amount = column_amount
+                else:
+                    if self.column_amount is not column_amount:
+                        raise ValueError("The csv-Files have different column amounts")
+                    else:
+                        self.csv_file = self.csv_file.append(new_csv_file)
                 
             
             except OSError as e:
@@ -77,7 +105,7 @@ class model():
             
             
 
-    def RemoveFilesFunctionality(self, elem_name):
+    def RemoveFilesFunctionality(self, elem_name:str):
         self.opened_files_arr.remove(elem_name)
         return self
 
@@ -111,3 +139,4 @@ class model():
         # pdfWriter.write(pdfOutput)
         # pdfOutput.close()
         return self
+    

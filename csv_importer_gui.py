@@ -10,6 +10,8 @@ import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
+from pathlib import Path
+from chardet import detect
 
 
 class model_interface():
@@ -31,7 +33,7 @@ class model_interface():
            
             self.__names = askopenfilenames()
             for filename in self.__names:
-                self.__filenames = self.model.ShowFilesFunctionality(filename)
+                self.__filenames = self.model.ImportCSVFiles(filename)
             listbox.delete(0, self.__index)
             for name in self.__filenames:
                     listbox.insert(self.__index, name)
@@ -45,7 +47,7 @@ class model_interface():
     
     def OpenFilesInterface(self, encoding, table, listbox):
         try:
-            self.__csv_file = self.model.OpenFilesFunctionality(encoding)
+            self.__csv_file = self.model.OpenCSVFiles(encoding)
         #         table.redraw()
                 
             

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+#TODO: Testprogramm schreiben
 #TODO: Parameter von csv-Dateien ändern können
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
 #TODO: verschiedene Ausgaben realisieren
@@ -61,8 +62,7 @@ class model():
     
     def csvSniffer(self, filename: str):
         with open(filename, "r") as sniffing_file:
-            header_line = sniffing_file.readline()
-            has_header = csv.Sniffer().has_header(header_line)
+            has_header = csv.Sniffer().has_header(sniffing_file.read(1024))
             dialect = csv.Sniffer().sniff(sniffing_file.read(1024))
             return has_header, dialect
     
@@ -72,11 +72,10 @@ class model():
             if filename.endswith("_", -2, -1):
                 filename = filename[:-2:]
             if encoding not in self.encodings_list or encoding == None:
-                print("No encoding or not available encoding chosen; encoding will be guessed from File")
+                print("No encoding or not available encoding chosen for "+filename+"; encoding will be guessed from File")
                 enc = detect(Path(filename).read_bytes())
                 encoding = enc["encoding"]
             hasSniffHeader, dialect = self.csvSniffer(filename)
-            print(hasSniffHeader)
             
             
             if hasSniffHeader or hasHeader:
@@ -87,7 +86,6 @@ class model():
                 header = None
             
             try:
-                print(header)
                 new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
                 column_amount = len(new_dataframe.columns)
                 
@@ -99,6 +97,7 @@ class model():
                         raise ValueError("The csv-Files have different column amounts")
 
                     else:
+                        #TODO: testen, ob bei gleicher spaltenanzahl die typen der spalten unterschiedlich sind
                         new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
                         self.main_dataframe = self.main_dataframe.append(new_dataframe.rename(columns=new_cols))
                 

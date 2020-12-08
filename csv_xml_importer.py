@@ -74,7 +74,7 @@ class model():
                 enc = detect(Path(filename).read_bytes())
                 encoding = enc["encoding"]
             hasSniffHeader, dialect = self.csvSniffer(filename)
-            print(dialect)
+            print(dialect.delimiter)
             if not hasHeader:
                 header = None
             elif hasSniffHeader or hasHeader:
@@ -117,26 +117,5 @@ class model():
         if len(self.opened_files_arr) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
-        # save_file = asksaveasfilename(defaultextension=".csv",
-        #                               filetypes=[("CSV file", "*.csv")],
-        #                               initialfile="import.csv")
-        # pdfWriter = PdfFileWriter()
-
-        # for filename in self.__opened_files_arr:
-        #     if filename.endswith("_", -2, -1):
-        #         filename = filename[:-2:]
-
-        #     pdfFileObj = open(filename, 'rb')
-        #     pdfReader = PdfFileReader(pdfFileObj)
-
-        #     for pageNum in range(pdfReader.numPages):
-        #         pageObj = pdfReader.getPage(pageNum)
-        #         pdfWriter.addPage(pageObj)
-
-        # if save_file == "":
-        #     return
-        # pdfOutput = open(save_file, 'wb')
-        # pdfWriter.write(pdfOutput)
-        # pdfOutput.close()
         return self
     

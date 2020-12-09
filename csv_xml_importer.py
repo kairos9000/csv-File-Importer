@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-#
+#TODO: update_with_personal_settings() Methode realisieren, um nach Anfangs-Import Parameter ändern zu können
 #TODO: regex-Ausdrücke benutzen, um Spalten zu benennen
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
 #TODO: verschiedene Ausgaben realisieren
@@ -22,7 +23,7 @@ class model():
 
     def __init__(self):
         self.opened_files_dict : dict =  {}
-        
+        self.settings_dict : dict = {"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}
         self.multiple_files_counter : int = 0
         self.encodings_list : list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
                                "ISO-8859-1", "ISO-8859-2", "ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-2022-CN", "ISO-2022-KR", "ISO-2022-JP",
@@ -65,30 +66,33 @@ class model():
             has_header = csv.Sniffer().has_header(read_sniffing_file)
             dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
+        
+    def import_with_init_settings(self, filename:str, lineTerminator:str = None):
+        enc = detect(Path(filename).read_bytes())
+        encoding = enc["encoding"]
+        hasSniffHeader, dialect = self.csvSniffer(filename)
+        self.settings_dict["Delimiter"] = dialect.delimiter
+        self.settings_dict["QuoteChar"] = dialect.quotechar
+        self.settings_dict["skipInitSpace"] = dialect.skipinitialspace
+        self.settings_dict["lineTerminator"] = lineTerminator
+        self.OpenCSVFile(filename,encoding, hasSniffHeader)
+        
+    def update_with_personal_settings(self):
+        # for filename in self.opened_files_dict.keys():
+        #     self.OpenCSVFile(filename)
+        pass
     
-    def OpenCSVFiles(self, filename:str, encoding:str = None, delimiter:str = None, quoteChar:str = None, skipInitSpace:bool=None):    
+    def OpenCSVFile(self, filename:str, encoding:str, hasSniffHeader:bool):    
         if filename.endswith("_", -2, -1):
             filename = filename[:-2:]
-        if encoding not in self.encodings_list or encoding == None:
-            enc = detect(Path(filename).read_bytes())
-            encoding = enc["encoding"]
-        
-        hasSniffHeader, dialect = self.csvSniffer(filename)
-        self.AddtoDict(filename, encoding, dialect)
-        if delimiter == None:
-            delimiter = dialect.delimiter
-        if quoteChar == None:
-            quoteChar = dialect.quotechar
-        if skipInitSpace == None:
-            skipInitSpace = dialect.skipinitialspace
-        
         if hasSniffHeader:
             header = "infer"             
         else:
             header = None
         
         try:
-            new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, sep=delimiter, quotechar=quoteChar, skipinitialspace=skipInitSpace)
+            new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, sep=self.settings_dict["Delimiter"], quotechar= self.settings_dict["QuoteChar"],
+                                        skipinitialspace=self.settings_dict["skipInitSpace"], lineterminator=self.settings_dict["lineTerminator"])
             column_amount = len(new_dataframe.columns)
             
             if self.main_dataframe.empty:
@@ -127,10 +131,6 @@ class model():
         self.main_dataframe = pd.DataFrame()
         self.__headerSeen = False
         self.column_amount = 0
-        
-    def update(self):
-        for filename in self.opened_files_dict.keys():
-            self.OpenCSVFiles(filename)
                 
 
     def RemoveFilesFunctionality(self, elem_name:str):

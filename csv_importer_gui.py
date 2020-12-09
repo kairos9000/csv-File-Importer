@@ -67,7 +67,7 @@ class model_interface():
             self.model.RemoveFilesFunctionality(elem_name)
             listbox.delete(elem)
 
-        if len(self.model.opened_files_arr) == 0:
+        if len(self.model.opened_files_dict) == 0:
             self.__index = 0
         return self
 
@@ -78,7 +78,7 @@ class model_interface():
         return self
 
     def MergeFilesInterface(self):
-        if len(self.model.opened_files_arr) == 0:
+        if len(self.model.opened_files_dict) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
         # save_file = asksaveasfilename(defaultextension=".csv",

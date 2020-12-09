@@ -22,7 +22,7 @@ class model():
     model-view-separation principle"""
 
     def __init__(self):
-        self.opened_files_arr : list =  []
+        self.opened_files_dict : dict =  {}
         
         self.multiple_files_counter : int = 0
         self.encodings_list : list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
@@ -40,6 +40,7 @@ class model():
                                 ]
         self.main_dataframe : pd.DataFrame()
         self.column_amount : int = 0
+        self.__headerSeen:bool = False
                 
     def getEncodingsListFunctionality(self):
         return self.encodings_list
@@ -47,78 +48,95 @@ class model():
     def getDataframeFunctionality(self):
         return self.main_dataframe
 
-    def ImportCSVFiles(self, filename:str):
+    def ImportCSVFiles(self, filename:str, encoding:str = None):
         if filename.endswith('.csv'):
-            if filename in self.opened_files_arr:
-                self.opened_files_arr.append(
-                    filename+"_"+str(self.multiple_files_counter))
+            if filename in self.opened_files_dict:
+                self.opened_files_dict[filename+"_"+str(self.multiple_files_counter)] = encoding
                 self.multiple_files_counter += 1
             else:
-                self.opened_files_arr.append(filename)
+                self.opened_files_dict[filename] = encoding
         else:
             print("Only CSV Files are allowed!")
             raise ValueError
-        return self.opened_files_arr
+        #return self.opened_files_dict
     
     def csvSniffer(self, filename: str):
         with open(filename, "r") as sniffing_file:
-            has_header = csv.Sniffer().has_header(sniffing_file.read(1024))
-            dialect = csv.Sniffer().sniff(sniffing_file.read(1024))
+            read_sniffing_file = sniffing_file.read()
+            has_header = csv.Sniffer().has_header(read_sniffing_file)
+            dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
     
-    def OpenCSVFiles(self, encoding:str = None, hasHeader:bool = None):
-        self.main_dataframe = pd.DataFrame()
-        for filename in self.opened_files_arr:
-            if filename.endswith("_", -2, -1):
-                filename = filename[:-2:]
-            if encoding not in self.encodings_list or encoding == None:
-                print("No encoding or not available encoding chosen for "+filename+"; encoding will be guessed from File")
-                enc = detect(Path(filename).read_bytes())
-                encoding = enc["encoding"]
-            hasSniffHeader, dialect = self.csvSniffer(filename)
+    def OpenCSVFiles(self, filename:str, encoding:str = None):
+        #TODO: Methode ändern, damit man nur ein File pro Aufruf einliest, damit Parameter geändert werden können
+        #TODO: reset methode
+        #TODO: update methode
+        # self.main_dataframe = pd.DataFrame()
+        # self.__headerSeen = False
+        # self.column_amount = 0
+        # for filename in self.opened_files_dict.keys():
+        ImportCSVFiles(filename, encoding)
+        if filename.endswith("_", -2, -1):
+            filename = filename[:-2:]
+        if self.opened_files_dict[filename] not in self.encodings_list or self.opened_files_dict[filename] == None:
+            print("No encoding or not available encoding chosen for "+filename+"; encoding will be guessed from File")
+            enc = detect(Path(filename).read_bytes())
+            encoding = enc["encoding"]
+        hasSniffHeader, dialect = self.csvSniffer(filename)
+        
+        
+        if hasSniffHeader or hasHeader:
+            header = "infer" 
             
+        else:
+            header = None
+        if not self.main_dataframe.empty:
+            header = None
+        
+        try:
+            new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
+            column_amount = len(new_dataframe.columns)
             
-            if hasSniffHeader or hasHeader:
-                header = "infer" 
+            if self.main_dataframe.empty:
+                self.main_dataframe = new_dataframe
+                self.column_amount = column_amount
             else:
-                header = None
-            if not self.main_dataframe.empty:
-                header = None
-            
-            try:
-                new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
-                column_amount = len(new_dataframe.columns)
-                
-                if self.main_dataframe.empty:
-                    self.main_dataframe = new_dataframe
-                    self.column_amount = column_amount
-                else:
-                    if self.column_amount is not column_amount:
-                        raise ValueError("The csv-Files have different column amounts")
+                if self.column_amount is not column_amount:
+                    raise ValueError("The csv-Files have different column amounts")
 
-                    else:
-                        #TODO: testen, ob bei gleicher spaltenanzahl die typen der spalten unterschiedlich sind
-                        new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
-                        self.main_dataframe = self.main_dataframe.append(new_dataframe.rename(columns=new_cols))
+                if not self.__headerSeen and hasSniffHeader:
+                    new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
+                    self.main_dataframe.rename(columns=new_cols)
+                    
+                    
+                    #TODO: testen, ob bei gleicher spaltenanzahl die typen der spalten unterschiedlich sind
+                if self.__headerSeen and not hasSniffHeader:
+                    new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
+                    new_dataframe.rename(columns=new_cols)
                 
+                self.main_dataframe = self.main_dataframe.append(new_dataframe)
+                
+            if not self.__headerSeen and hasSniffHeader: 
+                self.__headerSeen = True     
             
-            except OSError as e:
-                self.opened_files_arr.remove(filename)
-                raise OSError(e)
-        return self.main_dataframe               
+        
+        except OSError as e:
+            self.opened_files_dict.pop(filename)
+            raise OSError(e)
+    return self.main_dataframe               
             
             
 
     def RemoveFilesFunctionality(self, elem_name:str):
-        self.opened_files_arr.remove(elem_name)
+        self.opened_files_dict.pop(elem_name)
         return self
 
     def ClearAllFilesFunctionality(self):
-        self.opened_files_arr.clear()
+        self.opened_files_dict.clear()
         return self
 
     def MergeFilesFunctionality(self):
-        if len(self.opened_files_arr) == 0:
+        if len(self.opened_files_dict) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
         return self

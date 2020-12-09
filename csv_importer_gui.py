@@ -33,7 +33,8 @@ class model_interface():
            
             self.__names = askopenfilenames()
             for filename in self.__names:
-                self.__filenames = self.model.ImportCSVFiles(filename)
+                self.model.OpenCSVFiles(filename)
+            self.__filenames = self.model.opened_files_dict
             listbox.delete(0, self.__index)
             for name in self.__filenames:
                     listbox.insert(self.__index, name)

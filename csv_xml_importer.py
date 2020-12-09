@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-#TODO: Testprogramm schreiben
-#TODO: Parameter von csv-Dateien ändern können
+#TODO: regex-Ausdrücke benutzen, um Spalten zu benennen
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
 #TODO: verschiedene Ausgaben realisieren
 
@@ -38,7 +37,7 @@ class model():
                                "IBM855", "IBM866",
                                "TIS-620"
                                 ]
-        self.main_dataframe : pd.DataFrame()
+        self.main_dataframe = pd.DataFrame()
         self.column_amount : int = 0
         self.__headerSeen:bool = False
                 
@@ -48,17 +47,17 @@ class model():
     def getDataframeFunctionality(self):
         return self.main_dataframe
 
-    def ImportCSVFiles(self, filename:str, encoding:str = None):
+    def AddtoDict(self, filename:str, encoding:str, dialect):
         if filename.endswith('.csv'):
             if filename in self.opened_files_dict:
-                self.opened_files_dict[filename+"_"+str(self.multiple_files_counter)] = encoding
+                self.opened_files_dict[filename+"_"+str(self.multiple_files_counter)] = [encoding, dialect.delimiter, dialect.quotechar, dialect.skipinitialspace]
                 self.multiple_files_counter += 1
             else:
-                self.opened_files_dict[filename] = encoding
+                self.opened_files_dict[filename] = [encoding, dialect.delimiter, dialect.quotechar, dialect.skipinitialspace]
         else:
             print("Only CSV Files are allowed!")
             raise ValueError
-        #return self.opened_files_dict
+        return self.opened_files_dict
     
     def csvSniffer(self, filename: str):
         with open(filename, "r") as sniffing_file:
@@ -67,34 +66,29 @@ class model():
             dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
     
-    def OpenCSVFiles(self, filename:str, encoding:str = None):
-        #TODO: Methode ändern, damit man nur ein File pro Aufruf einliest, damit Parameter geändert werden können
-        #TODO: reset methode
-        #TODO: update methode
-        # self.main_dataframe = pd.DataFrame()
-        # self.__headerSeen = False
-        # self.column_amount = 0
-        # for filename in self.opened_files_dict.keys():
-        ImportCSVFiles(filename, encoding)
+    def OpenCSVFiles(self, filename:str, encoding:str = None, delimiter:str = None, quoteChar:str = None, skipInitSpace:bool=None):    
         if filename.endswith("_", -2, -1):
             filename = filename[:-2:]
-        if self.opened_files_dict[filename] not in self.encodings_list or self.opened_files_dict[filename] == None:
-            print("No encoding or not available encoding chosen for "+filename+"; encoding will be guessed from File")
+        if encoding not in self.encodings_list or encoding == None:
             enc = detect(Path(filename).read_bytes())
             encoding = enc["encoding"]
+        
         hasSniffHeader, dialect = self.csvSniffer(filename)
+        self.AddtoDict(filename, encoding, dialect)
+        if delimiter == None:
+            delimiter = dialect.delimiter
+        if quoteChar == None:
+            quoteChar = dialect.quotechar
+        if skipInitSpace == None:
+            skipInitSpace = dialect.skipinitialspace
         
-        
-        if hasSniffHeader or hasHeader:
-            header = "infer" 
-            
+        if hasSniffHeader:
+            header = "infer"             
         else:
-            header = None
-        if not self.main_dataframe.empty:
             header = None
         
         try:
-            new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, dialect=dialect)
+            new_dataframe = pd.read_csv(filename, encoding=encoding, header=header, sep=delimiter, quotechar=quoteChar, skipinitialspace=skipInitSpace)
             column_amount = len(new_dataframe.columns)
             
             if self.main_dataframe.empty:
@@ -103,29 +97,41 @@ class model():
             else:
                 if self.column_amount is not column_amount:
                     raise ValueError("The csv-Files have different column amounts")
+                
+                
 
                 if not self.__headerSeen and hasSniffHeader:
                     new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
-                    self.main_dataframe.rename(columns=new_cols)
+                    self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
+                    
                     
                     
                     #TODO: testen, ob bei gleicher spaltenanzahl die typen der spalten unterschiedlich sind
                 if self.__headerSeen and not hasSniffHeader:
                     new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
-                    new_dataframe.rename(columns=new_cols)
+                    new_dataframe = new_dataframe.rename(columns=new_cols)
                 
                 self.main_dataframe = self.main_dataframe.append(new_dataframe)
                 
             if not self.__headerSeen and hasSniffHeader: 
-                self.__headerSeen = True     
+                self.__headerSeen = True    
             
         
         except OSError as e:
             self.opened_files_dict.pop(filename)
             raise OSError(e)
-    return self.main_dataframe               
+        print(self.main_dataframe)
+        return self.main_dataframe               
             
-            
+    def reset(self):
+        self.main_dataframe = pd.DataFrame()
+        self.__headerSeen = False
+        self.column_amount = 0
+        
+    def update(self):
+        for filename in self.opened_files_dict.keys():
+            self.OpenCSVFiles(filename)
+                
 
     def RemoveFilesFunctionality(self, elem_name:str):
         self.opened_files_dict.pop(elem_name)

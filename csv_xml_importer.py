@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-#
-#TODO: regex-Ausdrücke benutzen, um Spalten zu benennen
+#TODO: regex-Ausdrücke verbessern (Web-URL und float), date vielleicht wieder genaue Variante nehmen
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
 #TODO: verschiedene Ausgaben realisieren
 
@@ -7,6 +7,7 @@ import tkinter as tk
 import pandas as pd
 import io
 import csv
+import re
 from tkinter import ttk 
 from pandastable import Table
 from tkinter.messagebox import showwarning, showinfo, showerror
@@ -22,7 +23,7 @@ class model():
 
     def __init__(self):
         self.opened_files_list : list =  []
-        self.settings_dict : dict = {"hasHeader":None,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}
+        self.settings_dict : dict = {"hasHeader":None,"wantHeader":False,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}
         self.multiple_files_counter : int = 0
         self.encodings_list : list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
                                "ISO-8859-1", "ISO-8859-2", "ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-2022-CN", "ISO-2022-KR", "ISO-2022-JP",
@@ -37,9 +38,40 @@ class model():
                                "IBM855", "IBM866",
                                "TIS-620"
                                 ]
+        self.types_dict : dict = {
+                        "Coordinate": re.compile(
+                            r"^(N|S)?0*\d{1,2}°0*\d{1,2}(′|')0*\d{1,2}\.\d*(″|\")(?(1)|(N|S)) (E|W)?0*\d{1,2}°0*\d{1,2}(′|')0*\d{1,2}\.\d*(″|\")(?(5)|(E|W))$"
+                        ),
+                        "Email": re.compile(
+                            r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+                        ),
+                        "Web-URL": re.compile(
+                            r"^((ftp|http|https):\/\/)?(www\.)?(ftp|http|https|www\.)?([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-]+)+((\/)([\w].*)+(#|\?)*)*((\/)*\w+\?[a-zA-Z0-9_]+=\w+(&[a-zA-Z0-9_]+=\w+)*)?$"
+                        ),
+                        "Time": re.compile(
+                            r"^([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
+                        ),
+                        "Date": re.compile(
+                            r"^([0-2]?\d|3[0-1])(\.|\/)(0?\d|1[0-2])(\.|\/)(?:[0-9]{2})?[0-9]{2}$"
+                        ),
+                        "Datetime": re.compile(
+                            r"^([0-2]?\d|3[0-1])(\.|\/)(0?\d|1[0-2])(\.|\/)(?:[0-9]{2})?[0-9]{2}.([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
+                        ),
+                        "Integer": re.compile(
+                            r"^\d+$"
+                        ),
+                        "Float": re.compile(
+                            r"^\d+(\.|\,)\d+$"
+                        ),
+                        "Bool": re.compile(
+                            r"^(True|true|TRUE|Wahr|wahr|WAHR|False|false|FALSE|Falsch|falsch|FALSCH)$"
+                        )
+                        
+                    }
         self.main_dataframe = pd.DataFrame()
+        self.default_header : list = []
         self.column_amount : int = 0
-        self.__headerSeen:bool = False
+        self.__main_dataframe_has_header:bool = False
                 
     def getEncodingsListFunctionality(self):
         return self.encodings_list
@@ -80,11 +112,10 @@ class model():
         self.OpenCSVFile(filename)
         
     def update_with_personal_settings(self, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
-        print(self.opened_files_list)
         self.reset()
         for filename in self.opened_files_list:
             if wantHeader is not None:
-                self.settings_dict["hasHeader"] = wantHeader
+                self.settings_dict["wantHeader"] = wantHeader
             if encoding is not None and encoding in self.encodings_list:
                 self.settings_dict["Encoding"] = encoding
             if Delimiter is not None:
@@ -97,6 +128,19 @@ class model():
                 self.settings_dict["lineTerminator"] = lineTerminator
                    
             self.OpenCSVFile(filename)
+    
+    def update_header(self, wantHeader:bool=None):
+        if wantHeader is not None:
+            self.settings_dict["wantHeader"] = wantHeader
+            
+        if not self.settings_dict["wantHeader"]:
+            self.default_header = self.find_header_formats(self.main_dataframe)
+            main_dataframe_columns = list(self.main_dataframe.columns)
+            default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
+            self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
+            
+        print(self.main_dataframe)
+        return self.main_dataframe
     
     def OpenCSVFile(self, filename:str):    
         if filename.endswith("_", -2, -1):
@@ -120,21 +164,28 @@ class model():
                 
                 
 
-                if not self.__headerSeen and self.settings_dict["hasHeader"]:
+                if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]:
                     new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
                     self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
                     
                     
                     
                     #TODO: testen, ob bei gleicher spaltenanzahl die typen der spalten unterschiedlich sind
-                if self.__headerSeen and not self.settings_dict["hasHeader"]:
+                if self.__main_dataframe_has_header and not self.settings_dict["hasHeader"]:
                     new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
                     new_dataframe = new_dataframe.rename(columns=new_cols)
                 
                 self.main_dataframe = self.main_dataframe.append(new_dataframe)
                 
-            if not self.__headerSeen and self.settings_dict["hasHeader"]: 
-                self.__headerSeen = True    
+            if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]: 
+                self.__main_dataframe_has_header = True    
+                
+                  
+            # if not self.__main_dataframe_has_header or self.settings_dict["wantHeader"]:
+            #     self.default_header = self.find_header_formats(self.main_dataframe)
+            #     main_dataframe_columns = list(self.main_dataframe.columns)
+            #     default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
+            #     self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
             
         
         except OSError as e:
@@ -145,9 +196,48 @@ class model():
             
     def reset(self):
         self.main_dataframe = pd.DataFrame()
-        self.__headerSeen = False
+        self.__main_dataframe_has_header = False
         self.column_amount = 0
-                
+        self.default_header = []
+    
+    def find_header_formats(self, dataframe):
+        row_counter = 0
+        first_row = True
+        type_lists_dict = {"first_list":[],"second_list":[],"third_list":[],"fourth_list":[],"fifth_list":[]}
+        for _, row in self.main_dataframe.iterrows():
+            if not self.__main_dataframe_has_header and first_row:
+                first_row = False
+                continue
+            if row_counter >= 4:
+                break
+            row_list = list(row)
+            for key in type_lists_dict.keys():
+                type_lists_dict[key] = self.regex_list_filler(type_lists_dict[key], row_list)           
+                row_counter += 1
+        
+        key_list = type_lists_dict["first_list"]
+        for key in type_lists_dict.keys():
+            if key_list != type_lists_dict[key]:
+                return []
+        return key_list
+    
+    def regex_list_filler(self, regex_list, row):
+        column_counter = 0
+        for elem in row:
+            elem = str(elem).strip()
+            regex_type = self.regex_tester(elem)
+            regex_list.append(str(column_counter)+"_"+ regex_type)
+            column_counter += 1
+        
+        return regex_list
+    
+    def regex_tester(self, elem):
+        for key in self.types_dict.keys():
+            match = self.types_dict[key].fullmatch(elem)
+            if match:
+                return key
+        return "String"
+
 
     def RemoveFilesFunctionality(self, elem_name:str):
         self.opened_files_list.remove(elem_name)

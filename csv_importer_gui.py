@@ -33,8 +33,8 @@ class model_interface():
            
             self.__names = askopenfilenames()
             for filename in self.__names:
-                self.model.OpenCSVFiles(filename)
-            self.__filenames = self.model.opened_files_dict
+                self.model.OpenCSVFile(filename)
+            self.__filenames = self.model.opened_files_list
             listbox.delete(0, self.__index)
             for name in self.__filenames:
                     listbox.insert(self.__index, name)
@@ -48,7 +48,7 @@ class model_interface():
     
     def OpenFilesInterface(self, encoding, table, listbox):
         try:
-            self.__csv_file = self.model.OpenCSVFiles(encoding)
+            self.__csv_file = self.model.OpenCSVFile(encoding)
         #         table.redraw()
                 
             
@@ -68,7 +68,7 @@ class model_interface():
             self.model.RemoveFilesFunctionality(elem_name)
             listbox.delete(elem)
 
-        if len(self.model.opened_files_dict) == 0:
+        if len(self.model.opened_files_list) == 0:
             self.__index = 0
         return self
 
@@ -79,7 +79,7 @@ class model_interface():
         return self
 
     def MergeFilesInterface(self):
-        if len(self.model.opened_files_dict) == 0:
+        if len(self.model.opened_files_list) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
         # save_file = asksaveasfilename(defaultextension=".csv",

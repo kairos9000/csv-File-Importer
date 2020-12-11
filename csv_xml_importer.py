@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-#
-#TODO: regex-Ausdrücke verbessern (Web-URL und float), date vielleicht wieder genaue Variante nehmen
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
 #TODO: verschiedene Ausgaben realisieren
 
@@ -15,6 +14,7 @@ from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
+from math import log, ceil, floor 
 
 
 class model():
@@ -55,10 +55,10 @@ class model():
                             r"^([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
                         ),
                         "Date": re.compile(
-                            r"^([0-2]?\d|3[0-1])(\.|\/)(0?\d|1[0-2])(\.|\/)(?:[0-9]{2})?[0-9]{2}$"
+                            r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$"
                         ),
                         "Datetime": re.compile(
-                            r"^([0-2]?\d|3[0-1])(\.|\/)(0?\d|1[0-2])(\.|\/)(?:[0-9]{2})?[0-9]{2}.([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
+                            r"^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/|-|\.)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2}).([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
                         ),
                         "Web-URL": re.compile(
                             r"^((ftp|http|https):\/\/)?(www\.)?(ftp|http|https|www\.)?([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-]+)+((\/)([\w].*)+(#|\?)*)*((\/)*\w+\?[a-zA-Z0-9_]+=\w+(&[a-zA-Z0-9_]+=\w+)*)?$"
@@ -99,6 +99,7 @@ class model():
             return has_header, dialect
         
     def import_with_init_settings(self, filename:str, lineTerminator:str = None, notReset:bool=True):
+        self.reset()
         hasSniffHeader, dialect = self.csvSniffer(filename)
         self.settings_dict["hasHeader"] = hasSniffHeader
         enc = detect(Path(filename).read_bytes())
@@ -114,6 +115,8 @@ class model():
     def update_with_personal_settings(self, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
         self.reset()
         for filename in self.opened_files_list:
+            if filename.endswith("_", -2, -1):
+                filename = filename[:-2:]
             if wantHeader is not None:
                 self.settings_dict["wantHeader"] = wantHeader
             if encoding is not None and encoding in self.encodings_list:
@@ -132,13 +135,15 @@ class model():
     def update_header(self, wantHeader:bool=None):
         self.reset()
         for filename in self.opened_files_list:
+            if filename.endswith("_", -2, -1):
+                filename = filename[:-2:]
             _,dialect = self.csvSniffer(filename)
             new_dataframe = pd.read_csv(filename, header = None, dialect = dialect)
             self.main_dataframe = self.main_dataframe.append(new_dataframe)
         if wantHeader is not None:
             self.settings_dict["wantHeader"] = wantHeader
             
-        if self.settings_dict["wantHeader"]:
+        if not self.settings_dict["wantHeader"]:
             self.default_header = self.find_header_formats(self.main_dataframe)
             main_dataframe_columns = list(self.main_dataframe.columns)
             default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
@@ -148,8 +153,7 @@ class model():
         return self.main_dataframe
     
     def OpenCSVFile(self, filename:str):    
-        if filename.endswith("_", -2, -1):
-            filename = filename[:-2:]
+        
         if self.settings_dict["hasHeader"]:
             header = "infer"             
         else:
@@ -167,14 +171,34 @@ class model():
                 if self.column_amount is not column_amount:
                     raise ValueError("The csv-Files have different column amounts")
                 
+                type_list_new_dataframe = list(new_dataframe.iloc[1])
+                type_list_main_dataframe = list(self.main_dataframe.iloc[1])
+                regex_types_new_dataframe = []
+                regex_types_main_dataframe = []
+                compare_list_new_dataframe = []
+                compare_list_main_dataframe = []
+                regex_types_new_dataframe = self.regex_list_filler(regex_types_new_dataframe, type_list_new_dataframe)
+                regex_types_main_dataframe = self.regex_list_filler(regex_types_main_dataframe, type_list_main_dataframe)
+                splice_len = 1
+                string_splice_len = splice_len + 1
+                for item_new, item_main in zip(regex_types_new_dataframe,regex_types_main_dataframe):
+                    item_new = item_new[string_splice_len:]
+                    item_main = item_main[string_splice_len:]
+                    splice_len += 1
+                    string_splice_len = ceil(log(splice_len, 10)+1)
+                    compare_list_new_dataframe.append(item_new)
+                    compare_list_main_dataframe.append(item_main)
+                
+                if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
+                    raise ValueError("The Types of the Dataframes are not compatible")
+                    
+                    
 
                 if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]:
                     new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
                     self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
                     
-                    
-                    
-                    #TODO: testen, ob bei gleicher spaltenanzahl die typen der spalten unterschiedlich sind
+
                 if self.__main_dataframe_has_header and not self.settings_dict["hasHeader"]:
                     new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
                     new_dataframe = new_dataframe.rename(columns=new_cols)
@@ -184,12 +208,13 @@ class model():
             if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]: 
                 self.__main_dataframe_has_header = True    
                 
-                  
-            # if not self.__main_dataframe_has_header or self.settings_dict["wantHeader"]:
-            #     self.default_header = self.find_header_formats(self.main_dataframe)
-            #     main_dataframe_columns = list(self.main_dataframe.columns)
-            #     default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
-            #     self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
+            if not self.__main_dataframe_has_header:
+                self.default_header = self.find_header_formats(self.main_dataframe)
+                main_dataframe_columns = list(self.main_dataframe.columns)
+                default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
+                self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
+                
+                
             
         
         except OSError as e:
@@ -207,23 +232,28 @@ class model():
     def find_header_formats(self, dataframe):
         row_counter = 0
         first_row = True
-        type_lists_dict = {"first_list":[],"second_list":[],"third_list":[],"fourth_list":[],"fifth_list":[]}
+        type_lists_dict = {"first_row":[],"second_row":[],"third_row":[],"fourth_row":[],"fifth_row":[]}
+        iter_type_lists_dict = iter(type_lists_dict)
+        key = next(iter_type_lists_dict)
         for _, row in self.main_dataframe.iterrows():
             if not self.__main_dataframe_has_header and first_row:
                 first_row = False
                 continue
-            if row_counter >= 4:
-                break
+            
             row_list = list(row)
-            for key in type_lists_dict.keys():
-                type_lists_dict[key] = self.regex_list_filler(type_lists_dict[key], row_list)           
-                row_counter += 1
-        
-        key_list = type_lists_dict["first_list"]
+            type_lists_dict[key] = self.regex_list_filler(type_lists_dict[key], row_list)
+            if row_counter >= 4:
+                break  
+            key = next(iter_type_lists_dict) 
+                  
+            row_counter += 1
+            
+        key_list = type_lists_dict["first_row"]
         for key in type_lists_dict.keys():
             if key_list != type_lists_dict[key]:
                 return []
         return key_list
+    
     
     def regex_list_filler(self, regex_list, row):
         column_counter = 0

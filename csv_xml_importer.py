@@ -39,15 +39,18 @@ class model():
                                "TIS-620"
                                 ]
         self.types_dict : dict = {
+                        "Integer": re.compile(
+                            r"^\d+$"
+                        ),
+                        "Float": re.compile(
+                            r"^\d+(\.|\,)\d+$"
+                        ),
                         "Coordinate": re.compile(
                             r"^(N|S)?0*\d{1,2}°0*\d{1,2}(′|')0*\d{1,2}\.\d*(″|\")(?(1)|(N|S)) (E|W)?0*\d{1,2}°0*\d{1,2}(′|')0*\d{1,2}\.\d*(″|\")(?(5)|(E|W))$"
                         ),
                         "Email": re.compile(
                             r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
-                        ),
-                        "Web-URL": re.compile(
-                            r"^((ftp|http|https):\/\/)?(www\.)?(ftp|http|https|www\.)?([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-]+)+((\/)([\w].*)+(#|\?)*)*((\/)*\w+\?[a-zA-Z0-9_]+=\w+(&[a-zA-Z0-9_]+=\w+)*)?$"
-                        ),
+                        ),                       
                         "Time": re.compile(
                             r"^([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
                         ),
@@ -57,21 +60,18 @@ class model():
                         "Datetime": re.compile(
                             r"^([0-2]?\d|3[0-1])(\.|\/)(0?\d|1[0-2])(\.|\/)(?:[0-9]{2})?[0-9]{2}.([0-1]\d|2[0-3]):[0-5]\d(:[0-5]\d)*$"
                         ),
-                        "Integer": re.compile(
-                            r"^\d+$"
-                        ),
-                        "Float": re.compile(
-                            r"^\d+(\.|\,)\d+$"
-                        ),
+                        "Web-URL": re.compile(
+                            r"^((ftp|http|https):\/\/)?(www\.)?(ftp|http|https|www\.)?([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-]+)+((\/)([\w].*)+(#|\?)*)*((\/)*\w+\?[a-zA-Z0-9_]+=\w+(&[a-zA-Z0-9_]+=\w+)*)?$"
+                        ),               
                         "Bool": re.compile(
                             r"^(True|true|TRUE|Wahr|wahr|WAHR|False|false|FALSE|Falsch|falsch|FALSCH)$"
-                        )
-                        
+                        )      
                     }
         self.main_dataframe = pd.DataFrame()
         self.default_header : list = []
         self.column_amount : int = 0
         self.__main_dataframe_has_header:bool = False
+        self.main_dataframe_has_default_header:bool = False
                 
     def getEncodingsListFunctionality(self):
         return self.encodings_list
@@ -130,10 +130,15 @@ class model():
             self.OpenCSVFile(filename)
     
     def update_header(self, wantHeader:bool=None):
+        self.reset()
+        for filename in self.opened_files_list:
+            _,dialect = self.csvSniffer(filename)
+            new_dataframe = pd.read_csv(filename, header = None, dialect = dialect)
+            self.main_dataframe = self.main_dataframe.append(new_dataframe)
         if wantHeader is not None:
             self.settings_dict["wantHeader"] = wantHeader
             
-        if not self.settings_dict["wantHeader"]:
+        if self.settings_dict["wantHeader"]:
             self.default_header = self.find_header_formats(self.main_dataframe)
             main_dataframe_columns = list(self.main_dataframe.columns)
             default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
@@ -161,7 +166,6 @@ class model():
             else:
                 if self.column_amount is not column_amount:
                     raise ValueError("The csv-Files have different column amounts")
-                
                 
 
                 if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]:

@@ -99,7 +99,6 @@ class model():
             return has_header, dialect
         
     def import_with_init_settings(self, filename:str, lineTerminator:str = None, notReset:bool=True):
-        self.reset()
         hasSniffHeader, dialect = self.csvSniffer(filename)
         self.settings_dict["hasHeader"] = hasSniffHeader
         enc = detect(Path(filename).read_bytes())
@@ -202,7 +201,7 @@ class model():
                 if self.__main_dataframe_has_header and not self.settings_dict["hasHeader"]:
                     new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
                     new_dataframe = new_dataframe.rename(columns=new_cols)
-                
+
                 self.main_dataframe = self.main_dataframe.append(new_dataframe)
                 
             if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]: 

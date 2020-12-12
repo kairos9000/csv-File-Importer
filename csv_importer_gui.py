@@ -6,6 +6,7 @@ import pandas as pd
 import io
 from tkinter import ttk 
 from pandastable import Table
+import csv_reader
 import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
@@ -19,11 +20,12 @@ class model_interface():
     model-view-separation principle"""
 
     def __init__(self):
-        self.model = cxi.model()
+        self.model = csv_reader.csv_importer()
+        self.importer = cxi.model()
         self.__index = 0
         
     def getEncodingsList(self):
-        return self.model.getEncodingsListFunctionality()
+        return self.importer.getEncodingsListFunctionality()
     
     def getDataframe(self):
         return self.model.getDataframeFunctionality()
@@ -34,7 +36,7 @@ class model_interface():
             self.__names = askopenfilenames()
             for filename in self.__names:
                 self.model.OpenCSVFile(filename)
-            self.__filenames = self.model.opened_files_list
+            self.__filenames = self.model.opened_csv_files_list
             listbox.delete(0, self.__index)
             for name in self.__filenames:
                     listbox.insert(self.__index, name)
@@ -68,7 +70,7 @@ class model_interface():
             self.model.RemoveFilesFunctionality(elem_name)
             listbox.delete(elem)
 
-        if len(self.model.opened_files_list) == 0:
+        if len(self.model.opened_csv_files_list) == 0:
             self.__index = 0
         return self
 
@@ -79,7 +81,7 @@ class model_interface():
         return self
 
     def MergeFilesInterface(self):
-        if len(self.model.opened_files_list) == 0:
+        if len(self.model.opened_csv_files_list) == 0:
             showwarning("Warning", "No CSV Files to import selected!")
             return
         # save_file = asksaveasfilename(defaultextension=".csv",

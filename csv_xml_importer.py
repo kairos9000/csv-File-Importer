@@ -22,9 +22,6 @@ class model():
     model-view-separation principle"""
 
     def __init__(self):
-        self.opened_files_list : list =  []
-        self.settings_dict : dict = {"hasHeader":None,"wantHeader":False,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}
-        self.multiple_files_counter : int = 0
         self.encodings_list : list = ["UTF-8", "UTF-16", "UTF-32", "ASCII",
                                "ISO-8859-1", "ISO-8859-2", "ISO-8859-5", "ISO-8859-7", "ISO-8859-8", "ISO-2022-CN", "ISO-2022-KR", "ISO-2022-JP",
                                "windows-1251",  "windows-1250", "windows-1251",  "windows-1252", "windows-1253",  "windows-1255", 
@@ -76,150 +73,60 @@ class model():
     def getEncodingsListFunctionality(self):
         return self.encodings_list
     
-    def getDataframeFunctionality(self):
-        return self.main_dataframe
-
-    def AddtoList(self, filename:str):
-        if filename.endswith('.csv'):
-            if filename in self.opened_files_list:
-                self.opened_files_list.append(filename+"_"+str(self.multiple_files_counter))
-                self.multiple_files_counter += 1
-            else:
-                self.opened_files_list.append(filename)
-        else:
-            print("Only CSV Files are allowed!")
-            raise ValueError
-        return self.opened_files_list
     
-    def csvSniffer(self, filename: str):
-        with open(filename, "r") as sniffing_file:
-            read_sniffing_file = sniffing_file.read()
-            has_header = csv.Sniffer().has_header(read_sniffing_file)
-            dialect = csv.Sniffer().sniff(read_sniffing_file)
-            return has_header, dialect
-        
-    def import_with_init_settings(self, filename:str, lineTerminator:str = None, notReset:bool=True):
-        hasSniffHeader, dialect = self.csvSniffer(filename)
-        self.settings_dict["hasHeader"] = hasSniffHeader
-        enc = detect(Path(filename).read_bytes())
-        self.settings_dict["Encoding"] = enc["encoding"]      
-        self.settings_dict["Delimiter"] = dialect.delimiter
-        self.settings_dict["QuoteChar"] = dialect.quotechar
-        self.settings_dict["skipInitSpace"] = dialect.skipinitialspace
-        self.settings_dict["lineTerminator"] = lineTerminator
-        if notReset:
-            self.AddtoList(filename)
-        self.OpenCSVFile(filename)
-        
-    def update_with_personal_settings(self, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
-        self.reset()
-        for filename in self.opened_files_list:
-            if filename.endswith("_", -2, -1):
-                filename = filename[:-2:]
-            if wantHeader is not None:
-                self.settings_dict["wantHeader"] = wantHeader
-            if encoding is not None and encoding in self.encodings_list:
-                self.settings_dict["Encoding"] = encoding
-            if Delimiter is not None:
-                self.settings_dict["Delimiter"] = Delimiter
-            if Quotechar is not None:
-                self.settings_dict["QuoteChar"] = Quotechar
-            if skipInitSpace is not None:
-                self.settings_dict["skipInitSpace"] = skipInitSpace
-            if lineTerminator is not None:
-                self.settings_dict["lineTerminator"] = lineTerminator
-                   
-            self.OpenCSVFile(filename)
     
-    def update_header(self, wantHeader:bool=None):
-        self.reset()
-        for filename in self.opened_files_list:
-            if filename.endswith("_", -2, -1):
-                filename = filename[:-2:]
-            _,dialect = self.csvSniffer(filename)
-            new_dataframe = pd.read_csv(filename, header = None, dialect = dialect)
-            self.main_dataframe = self.main_dataframe.append(new_dataframe)
-        if wantHeader is not None:
-            self.settings_dict["wantHeader"] = wantHeader
+    def ImportFile(self, new_dataframe:pd.DataFrame, column_amount:int, hasHeader:bool):    
             
-        if not self.settings_dict["wantHeader"]:
+        if self.main_dataframe.empty:
+            self.main_dataframe = new_dataframe
+            self.column_amount = column_amount
+        else:
+            if self.column_amount is not column_amount:
+                raise ValueError("The csv-Files have different column amounts")
+            
+            type_list_new_dataframe = list(new_dataframe.iloc[1])
+            type_list_main_dataframe = list(self.main_dataframe.iloc[1])
+            regex_types_new_dataframe = []
+            regex_types_main_dataframe = []
+            compare_list_new_dataframe = []
+            compare_list_main_dataframe = []
+            regex_types_new_dataframe = self.regex_list_filler(regex_types_new_dataframe, type_list_new_dataframe)
+            regex_types_main_dataframe = self.regex_list_filler(regex_types_main_dataframe, type_list_main_dataframe)
+            splice_len = 1
+            string_splice_len = splice_len + 1
+            for item_new, item_main in zip(regex_types_new_dataframe,regex_types_main_dataframe):
+                item_new = item_new[string_splice_len:]
+                item_main = item_main[string_splice_len:]
+                splice_len += 1
+                string_splice_len = ceil(log(splice_len, 10)+1)
+                compare_list_new_dataframe.append(item_new)
+                compare_list_main_dataframe.append(item_main)
+            
+            if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
+                raise ValueError("The Types of the Dataframes are not compatible")
+                
+                
+
+            if not self.__main_dataframe_has_header and hasHeader:
+                new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
+                self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
+                
+
+            if self.__main_dataframe_has_header and not hasHeader:
+                new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
+                new_dataframe = new_dataframe.rename(columns=new_cols)
+
+            self.main_dataframe = self.main_dataframe.append(new_dataframe)
+            
+        if not self.__main_dataframe_has_header and hasHeader: 
+            self.__main_dataframe_has_header = True    
+            
+        if not self.__main_dataframe_has_header:
             self.default_header = self.find_header_formats(self.main_dataframe)
             main_dataframe_columns = list(self.main_dataframe.columns)
             default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
             self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
-            
-        print(self.main_dataframe)
-        return self.main_dataframe
-    
-    def OpenCSVFile(self, filename:str):    
-        
-        if self.settings_dict["hasHeader"]:
-            header = "infer"             
-        else:
-            header = None
-        
-        try:
-            new_dataframe = pd.read_csv(filename, encoding=self.settings_dict["Encoding"], header=header, sep=self.settings_dict["Delimiter"], quotechar= self.settings_dict["QuoteChar"],
-                                        skipinitialspace=self.settings_dict["skipInitSpace"], lineterminator=self.settings_dict["lineTerminator"])
-            column_amount = len(new_dataframe.columns)
-            
-            if self.main_dataframe.empty:
-                self.main_dataframe = new_dataframe
-                self.column_amount = column_amount
-            else:
-                if self.column_amount is not column_amount:
-                    raise ValueError("The csv-Files have different column amounts")
                 
-                type_list_new_dataframe = list(new_dataframe.iloc[1])
-                type_list_main_dataframe = list(self.main_dataframe.iloc[1])
-                regex_types_new_dataframe = []
-                regex_types_main_dataframe = []
-                compare_list_new_dataframe = []
-                compare_list_main_dataframe = []
-                regex_types_new_dataframe = self.regex_list_filler(regex_types_new_dataframe, type_list_new_dataframe)
-                regex_types_main_dataframe = self.regex_list_filler(regex_types_main_dataframe, type_list_main_dataframe)
-                splice_len = 1
-                string_splice_len = splice_len + 1
-                for item_new, item_main in zip(regex_types_new_dataframe,regex_types_main_dataframe):
-                    item_new = item_new[string_splice_len:]
-                    item_main = item_main[string_splice_len:]
-                    splice_len += 1
-                    string_splice_len = ceil(log(splice_len, 10)+1)
-                    compare_list_new_dataframe.append(item_new)
-                    compare_list_main_dataframe.append(item_main)
-                
-                if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
-                    raise ValueError("The Types of the Dataframes are not compatible")
-                    
-                    
-
-                if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]:
-                    new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
-                    self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
-                    
-
-                if self.__main_dataframe_has_header and not self.settings_dict["hasHeader"]:
-                    new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
-                    new_dataframe = new_dataframe.rename(columns=new_cols)
-
-                self.main_dataframe = self.main_dataframe.append(new_dataframe)
-                
-            if not self.__main_dataframe_has_header and self.settings_dict["hasHeader"]: 
-                self.__main_dataframe_has_header = True    
-                
-            if not self.__main_dataframe_has_header:
-                self.default_header = self.find_header_formats(self.main_dataframe)
-                main_dataframe_columns = list(self.main_dataframe.columns)
-                default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
-                self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
-                
-                
-            
-        
-        except OSError as e:
-            self.opened_files_list.pop(filename)
-            raise OSError(e)
-        print(self.main_dataframe)
         return self.main_dataframe               
             
     def reset(self):
@@ -271,18 +178,4 @@ class model():
                 return key
         return "String"
 
-
-    def RemoveFilesFunctionality(self, elem_name:str):
-        self.opened_files_list.remove(elem_name)
-        return self
-
-    def ClearAllFilesFunctionality(self):
-        self.opened_files_list.clear()
-        return self
-
-    def MergeFilesFunctionality(self):
-        if len(self.opened_files_list) == 0:
-            showwarning("Warning", "No CSV Files to import selected!")
-            return
-        return self
     

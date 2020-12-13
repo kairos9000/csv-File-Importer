@@ -15,6 +15,7 @@ import csv_xml_importer as cxi
 import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
+#TODO: update_with_personal_settings so einstellen, dass man die dialects von einzelnen Dateien ändern kann
 
 class reader():
     def __init__(self):
@@ -64,7 +65,7 @@ class reader():
             dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
     
-    def import_with_init_settings(self, filename:str, lineTerminator:str = None, notReset:bool=True):
+    def import_with_init_settings(self, filename:str, notReset:bool=True):
         if filename.endswith("_", -2, -1):
             filename = filename[:-2:]
         if filename.endswith('.csv'):
@@ -75,7 +76,6 @@ class reader():
             self.settings_csv_dict["Delimiter"] = dialect.delimiter
             self.settings_csv_dict["QuoteChar"] = dialect.quotechar
             self.settings_csv_dict["skipInitSpace"] = dialect.skipinitialspace
-            self.settings_csv_dict["lineTerminator"] = lineTerminator
             self.OpenCSVFile(filename)
             if notReset:
                 self.AddtoCSVList(filename)
@@ -90,26 +90,30 @@ class reader():
             
         
     
-    def update_with_personal_settings(self, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
+    def update_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
         self.reset()
         
-        for filename in self.opened_csv_files_list:
-            if filename.endswith("_", -2, -1):
-                filename = filename[:-2:]
-            if wantHeader is not None:
-                self.settings_csv_dict["wantHeader"] = wantHeader
-            if encoding is not None and encoding in self.importer.encodings_list:
-                self.settings_csv_dict["Encoding"] = encoding
-            if Delimiter is not None:
-                self.settings_csv_dict["Delimiter"] = Delimiter
-            if Quotechar is not None:
-                self.settings_csv_dict["QuoteChar"] = Quotechar
-            if skipInitSpace is not None:
-                self.settings_csv_dict["skipInitSpace"] = skipInitSpace
-            if lineTerminator is not None:
-                self.settings_csv_dict["lineTerminator"] = lineTerminator
+        for file in self.opened_csv_files_list:
+            if file == filename:
+                if filename.endswith("_", -2, -1):
+                    filename = filename[:-2:]
+                if wantHeader is not None:
+                    self.settings_csv_dict["wantHeader"] = wantHeader
+                if encoding is not None and encoding in self.importer.encodings_list:
+                    self.settings_csv_dict["Encoding"] = encoding
+                if Delimiter is not None:
+                    self.settings_csv_dict["Delimiter"] = Delimiter
+                if Quotechar is not None:
+                    self.settings_csv_dict["QuoteChar"] = Quotechar
+                if skipInitSpace is not None:
+                    self.settings_csv_dict["skipInitSpace"] = skipInitSpace
+                if lineTerminator is not None:
+                    self.settings_csv_dict["lineTerminator"] = lineTerminator
+                self.OpenCSVFile(filename)
+            else:
+                self.import_with_init_settings(file, False)
                 
-            self.OpenCSVFile(filename)
+            
             
     def update_header(self, wantHeader:bool=None):
         if wantHeader:

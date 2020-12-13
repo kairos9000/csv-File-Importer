@@ -13,6 +13,8 @@ from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
+#TODO: für Dateien eine dropdownlist anlegen, um jede Datei einzeln zu konfigurieren
+    #also über Liste Datei auswählen=> konfigurieren
 
 
 class model_interface():

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-#
-#TODO: XML-Dateien einlesen können über xsl-Stylsheet
-#TODO: xml_reader und csv_reader zu einer Datei reader zusammenführen, um xml und csv gleichzeitig lesen zu können
 #TODO: verschiedene Ausgaben realisieren
 
 import tkinter as tk
@@ -118,14 +116,16 @@ class model():
 
             self.main_dataframe = self.main_dataframe.append(new_dataframe)
             
-        if not self.__main_dataframe_has_header and hasHeader: 
-            self.__main_dataframe_has_header = True    
+        
+            
             
         if not self.__main_dataframe_has_header:
             self.default_header = self.find_header_formats(self.main_dataframe)
             main_dataframe_columns = list(self.main_dataframe.columns)
             default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
             self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
+        
+        self.__main_dataframe_has_header = True
                    
         return self.main_dataframe               
             

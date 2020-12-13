@@ -15,7 +15,9 @@ import csv_xml_importer as cxi
 import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
+#TODO: Parameter von XSL Stylesheets ändern können
 #TODO: update_with_personal_settings so einstellen, dass man die dialects von einzelnen Dateien ändern kann
+#TODO: dict für die Dateien anlegen, da jede Datei ihre eigenen Parameter braucht
 
 class reader():
     def __init__(self):
@@ -68,6 +70,7 @@ class reader():
     def import_with_init_settings(self, filename:str, notReset:bool=True):
         if filename.endswith("_", -2, -1):
             filename = filename[:-2:]
+        
         if filename.endswith('.csv'):
             hasSniffHeader, dialect = self.csvSniffer(filename)
             self.settings_csv_dict["hasHeader"] = hasSniffHeader
@@ -79,6 +82,7 @@ class reader():
             self.OpenCSVFile(filename)
             if notReset:
                 self.AddtoCSVList(filename)
+                
             
         if filename.endswith('.xml'):
             self.settings_xml_dict["Delimiter"] = ","
@@ -93,10 +97,12 @@ class reader():
     def update_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
         self.reset()
         
-        for file in self.opened_csv_files_list:
-            if file == filename:
+        for other_filenames in self.opened_csv_files_list:
+            if other_filenames == filename:
                 if filename.endswith("_", -2, -1):
-                    filename = filename[:-2:]
+                    tmp_filename = filename[:-2:]
+                else:
+                    tmp_filename = filename
                 if wantHeader is not None:
                     self.settings_csv_dict["wantHeader"] = wantHeader
                 if encoding is not None and encoding in self.importer.encodings_list:
@@ -109,9 +115,9 @@ class reader():
                     self.settings_csv_dict["skipInitSpace"] = skipInitSpace
                 if lineTerminator is not None:
                     self.settings_csv_dict["lineTerminator"] = lineTerminator
-                self.OpenCSVFile(filename)
+                self.OpenCSVFile(tmp_filename)
             else:
-                self.import_with_init_settings(file, False)
+                self.import_with_init_settings(other_filenames, False)
                 
             
             
@@ -122,9 +128,11 @@ class reader():
         self.reset()
         for filename in self.opened_csv_files_list:
             if filename.endswith("_", -2, -1):
-                filename = filename[:-2:]
-            _,dialect = self.csvSniffer(filename)
-            new_dataframe = pd.read_csv(filename, header = None, dialect = dialect)
+                tmp_filename = filename[:-2:]
+            else:
+                tmp_filename = filename
+            _,dialect = self.csvSniffer(tmp_filename)
+            new_dataframe = pd.read_csv(tmp_filename, header = None, dialect = dialect)
             self.main_dataframe = self.main_dataframe.append(new_dataframe)
         if wantHeader is not None:
             self.settings_csv_dict["wantHeader"] = wantHeader
@@ -217,6 +225,8 @@ class reader():
                
     
     def RemoveFilesFunctionality(self, elem_name:str):
+        if elem_name.endswith("_", -2, -1):
+            elem_name = elem_name[:-2:]
         if elem_name.endswith('.csv'):
             self.opened_csv_files_list.remove(elem_name)
         if elem_name.endswith('.xml'):

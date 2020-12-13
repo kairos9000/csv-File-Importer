@@ -17,11 +17,12 @@ from lxml import etree
 import xml.etree.ElementTree as ET
 
 #TODO: Funktion, die xml-Files in Dataframes überführt, mit Parameter Anpassung
+#TODO: Fragen, ob eine zweite Parameter Anpassung für XSL nötig ist 
 
 class xml_importer():
     def __init__(self):
         self.opened_xml_files_list : list =  []
-        self.settings_dict : dict = {"hasHeader":None,"wantHeader":False,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}
+        self.settings_xml_dict : dict = {"hasHeader":None,"wantHeader":False,"Delimiter": None, "QuoteChar":None,"lineTerminator":None}
         self.multiple_files_counter : int = 0
         self.main_dataframe = pd.DataFrame()
         self.default_header : list = []
@@ -45,37 +46,50 @@ class xml_importer():
             raise ValueError
         return self.opened_xml_files_list
     
-    def OpenXMLFiles(self):
+    def import_with_init_settings(self, filename:str, lineTerminator:str = None, notReset:bool=True):
+        if filename.endswith("_", -2, -1):
+            filename = filename[:-2:]
+        test = "\""
+        self.settings_xml_dict["Delimiter"] = ","
+        self.settings_xml_dict["QuoteChar"] = "'"+test+"'"
+        self.settings_xml_dict["lineTerminator"] = "\r\n"
+        if notReset:
+            self.AddtoList(filename)
+        self.OpenXMLFile(filename)
+    
+    def OpenXMLFile(self, filename):
         try:
             try:
-                xmldoc = etree.parse("cdcatalog.xml")
+                xmldoc = etree.parse(filename)
             except lxml.etree.ParseError as parse_error:
-                print("parse_error")
-                exit()
+                print(parse_error)
+                return
             try:
                 transformer = etree.XSLT(etree.parse("xml2csv.xsl"))
                 tree = ET.parse('xml2csv.xsl')
             except lxml.etree.XSLTParseError as xsl_parse_error:
-                print("xsl_parse_error")
-                exit()
+                print(xsl_parse_error)
+                return
             root = tree.getroot()
             match = [c.attrib for c in root if 'param' in c.tag]
 
-            sep_param = ","
-            result = str(transformer(xmldoc, **{match[0]["name"]: "\""+sep_param+"\""}, **{match[1]["name"]: "'\"'"}, **{match[2]["name"]: "'\r\n'"}))
+            result = str(transformer(xmldoc, **{match[0]["name"]: "\""+self.settings_xml_dict["Delimiter"]+"\""}, **{match[1]["name"]: self.settings_xml_dict["QuoteChar"]}, **{match[2]["name"]:  "\""+self.settings_xml_dict["lineTerminator"]+"\""}))
             reader = csv.reader(result.splitlines(), delimiter=',')
             list_reader = list(reader)
-            print(list_reader)
-            column_names = list_reader.pop(0)
-
-            df = pd.DataFrame(list_reader, columns=column_names)
-            print(df)
+            column_amount = len(list_reader[0])
+            column_names = None#list_reader.pop(0)
+            self.settings_xml_dict["hasHeader"] = True
+            new_dataframe = pd.DataFrame(list_reader, columns=column_names)
     
         except OSError as os:
-            print("os")
+            print(os)
             
         except lxml.etree.XSLTApplyError as transform_error:
-            print("transform_error")
+            print(transform_error)
+            
+        self.main_dataframe = self.importer.ImportFile(new_dataframe, column_amount,self.settings_xml_dict["hasHeader"])
+        print(self.main_dataframe)
+        return self.main_dataframe
     
     def reset(self):
         self.main_dataframe = pd.DataFrame()

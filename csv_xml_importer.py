@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-#
 #TODO: XML-Dateien einlesen können über xsl-Stylsheet
+#TODO: xml_reader und csv_reader zu einer Datei reader zusammenführen, um xml und csv gleichzeitig lesen zu können
 #TODO: verschiedene Ausgaben realisieren
 
 import tkinter as tk
@@ -82,7 +83,7 @@ class model():
             self.column_amount = column_amount
         else:
             if self.column_amount is not column_amount:
-                raise ValueError("The csv-Files have different column amounts")
+                raise ValueError("The Files have different column amounts")
             
             type_list_new_dataframe = list(new_dataframe.iloc[1])
             type_list_main_dataframe = list(self.main_dataframe.iloc[1])
@@ -101,7 +102,6 @@ class model():
                 string_splice_len = ceil(log(splice_len, 10)+1)
                 compare_list_new_dataframe.append(item_new)
                 compare_list_main_dataframe.append(item_main)
-            
             if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
                 raise ValueError("The Types of the Dataframes are not compatible")
                 
@@ -126,7 +126,7 @@ class model():
             main_dataframe_columns = list(self.main_dataframe.columns)
             default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
             self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
-                
+                   
         return self.main_dataframe               
             
     def reset(self):
@@ -157,7 +157,8 @@ class model():
         key_list = type_lists_dict["first_row"]
         for key in type_lists_dict.keys():
             if key_list != type_lists_dict[key]:
-                return []
+                raise ImportError("The column formats are not consistent")
+                
         return key_list
     
     

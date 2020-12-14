@@ -79,6 +79,10 @@ class model():
         if self.main_dataframe.empty:
             self.main_dataframe = new_dataframe
             self.column_amount = column_amount
+            try:
+                self.find_header_formats(self.main_dataframe)
+            except ImportError as import_error:
+                print(import_error)
         else:
             if self.column_amount is not column_amount:
                 raise ValueError("The Files have different column amounts")
@@ -105,18 +109,23 @@ class model():
                 
                 
 
-            if not self.__main_dataframe_has_header and hasHeader:
+            if hasHeader:
                 new_cols = {x: y for x, y in zip(self.main_dataframe, new_dataframe)}
                 self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
                 
 
-            if self.__main_dataframe_has_header and not hasHeader:
+            if not hasHeader:
                 new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
                 new_dataframe = new_dataframe.rename(columns=new_cols)
-
+            try:
+                self.find_header_formats(new_dataframe)
+            except ImportError as import_error:
+                print(import_error)
+            
             self.main_dataframe = self.main_dataframe.append(new_dataframe)
             
-        
+        if hasHeader:
+            self.__main_dataframe_has_header = True
             
             
         if not self.__main_dataframe_has_header:
@@ -141,7 +150,7 @@ class model():
         type_lists_dict = {"first_row":[],"second_row":[],"third_row":[],"fourth_row":[],"fifth_row":[]}
         iter_type_lists_dict = iter(type_lists_dict)
         key = next(iter_type_lists_dict)
-        for _, row in self.main_dataframe.iterrows():
+        for _, row in dataframe.iterrows():
             if not self.__main_dataframe_has_header and first_row:
                 first_row = False
                 continue
@@ -152,11 +161,14 @@ class model():
                 break  
             key = next(iter_type_lists_dict) 
                   
-            row_counter += 1
-            
+            row_counter += 1   
         key_list = type_lists_dict["first_row"]
         for key in type_lists_dict.keys():
-            if key_list != type_lists_dict[key]:
+            if key_list != type_lists_dict[key] and len(type_lists_dict[key]) != 0:
+                for key_list_item, other_list_item in zip(key_list,type_lists_dict[key]):
+                    if key_list_item != other_list_item:
+                        key_list_item = key_list_item[0:2]+"String"
+                        other_list_item = other_list_item[0:2]+"String"
                 raise ImportError("The column formats are not consistent")
                 
         return key_list
@@ -178,5 +190,5 @@ class model():
             if match:
                 return key
         return "String"
-
+    
     

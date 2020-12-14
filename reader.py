@@ -15,16 +15,16 @@ import csv_xml_importer as cxi
 import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
-#TODO: Parameter von XSL Stylesheets ändern können
-#TODO: update_with_personal_settings so einstellen, dass man die dialects von einzelnen Dateien ändern kann
+#TODO: Header von XML Dateien erkennen können
 #TODO: dict für die Dateien anlegen, da jede Datei ihre eigenen Parameter braucht
+#TODO: Parameter von XSL Stylesheet durch GUI änderbar machen durch Parameter Werte Paar => Listbox mit Parametern, einlesen durch Klasse und ausgeben in Listbox und dann Parameter durch Entry änderbar machen
 
 class reader():
     def __init__(self):
         self.opened_csv_files_list : list =  []
         self.settings_csv_dict : dict = {"hasHeader":None,"wantHeader":False,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}        
         self.opened_xml_files_list : list =  []
-        self.settings_xml_dict : dict = {"hasHeader":None,"wantHeader":False,"Delimiter": None, "QuoteChar":None,"lineTerminator":None}
+        self.settings_xml_dict : dict = {}
         self.multiple_files_counter : int = 0
         self.main_dataframe = pd.DataFrame()
         self.default_header : list = []
@@ -32,6 +32,7 @@ class reader():
         self.__main_dataframe_has_header:bool = False
         self.main_dataframe_has_default_header:bool = False
         self.importer = cxi.model()
+        self.parameters_len:int = 0
         
     def getDataframeFunctionality(self):
         return self.main_dataframe
@@ -67,7 +68,7 @@ class reader():
             dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
     
-    def import_with_init_settings(self, filename:str, notReset:bool=True):
+    def import_with_init_settings(self, filename:str, xsl_file:str=None, notReset:bool=True):
         if filename.endswith("_", -2, -1):
             filename = filename[:-2:]
         
@@ -85,16 +86,17 @@ class reader():
                 
             
         if filename.endswith('.xml'):
-            self.settings_xml_dict["Delimiter"] = ","
-            self.settings_xml_dict["QuoteChar"] = "'\"'"
-            self.settings_xml_dict["lineTerminator"] = "\r\n"
-            self.OpenXMLFile(filename)
+            if xsl_file == None:
+                print("Choose XSL File to continue")
+            elif xsl_file.endswith(".xsl"): 
+                self.getXMLParameters(xsl_file)             
+                self.OpenXMLFile(filename, xsl_file, True)
             if notReset:
                 self.AddtoXMLList(filename)
             
         
     
-    def update_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
+    def update_csv_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):
         self.reset()
         
         for other_filenames in self.opened_csv_files_list:
@@ -147,7 +149,6 @@ class reader():
         return self.main_dataframe
     
     def OpenCSVFile(self, filename:str):    
-        
         if self.settings_csv_dict["hasHeader"]:
             header = "infer"             
         else:
@@ -174,7 +175,30 @@ class reader():
         print(self.main_dataframe)
         return self.main_dataframe
     
-    def OpenXMLFile(self, filename):
+    def getXMLParameters(self, xsl_file):
+        tree = ET.parse(xsl_file)
+        root = tree.getroot()
+        param_matches = [c.attrib for c in root if 'param' in c.tag]
+        self.parameters_len = len(param_matches)
+        for index,_ in enumerate(param_matches):
+            self.settings_xml_dict[param_matches[index]["name"]] = param_matches[index]["select"]
+        self.settings_xml_dict["xsl_file"] = xsl_file
+        return self.settings_xml_dict
+    
+    def addXMLParameter(self, filename:str, param:str, value:str):       
+        if self.settings_xml_dict:
+            if param in self.settings_xml_dict.keys():
+                self.settings_xml_dict[param] = "'"+value+"'"
+                self.OpenXMLFile(filename, self.settings_xml_dict["xsl_file"], False)
+            else:
+                print("Parameter could not be found in XSL-Stylesheet")
+            
+
+             
+        
+        
+    
+    def OpenXMLFile(self, filename, xsl_file:str, init:bool):
         try:
             try:
                 xmldoc = etree.parse(filename)
@@ -182,22 +206,35 @@ class reader():
                 print(parse_error)
                 return
             try:
-                transformer = etree.XSLT(etree.parse("xml2csv.xsl"))
-                tree = ET.parse('xml2csv.xsl')
+                transformer = etree.XSLT(etree.parse(xsl_file))
             except lxml.etree.XSLTParseError as xsl_parse_error:
                 print(xsl_parse_error)
                 return
-            root = tree.getroot()
-            match = [c.attrib for c in root if 'param' in c.tag]
 
-            result = str(transformer(xmldoc, **{match[0]["name"]: "\""+self.settings_xml_dict["Delimiter"]+"\""}, **{match[1]["name"]: self.settings_xml_dict["QuoteChar"]}, **{match[2]["name"]:  "\""+self.settings_xml_dict["lineTerminator"]+"\""}))
+            if not init:
+                tmp_parameters_list = ["","","",""]
+                tmp_values_list = ["","","",""]
+                tmp_settings_list = list(self.settings_xml_dict)
+                for i in range(self.parameters_len):
+                    tmp_parameters_list[i] = tmp_settings_list[i]
+                    tmp_values_list[i] = self.settings_xml_dict[tmp_settings_list[i]]
+                print(tmp_values_list, tmp_parameters_list)
+                try:
+                    result = str(transformer(xmldoc, **{tmp_parameters_list[0]: tmp_values_list[0]}, **{tmp_parameters_list[1]: tmp_values_list[1]},
+                                        **{tmp_parameters_list[2]: tmp_values_list[2]}))
+                except etree.XSLTApplyError as apply_error:
+                    print(apply_error)
+                
+            
+            else: 
+                result = str(transformer(xmldoc))
             reader = csv.reader(result.splitlines(), delimiter=',')
             list_reader = list(reader)
+            
             column_amount = len(list_reader[0])
-            column_names = None#list_reader.pop(0)
+            column_names = list_reader.pop(0)#None
             self.settings_xml_dict["hasHeader"] = True
             new_dataframe = pd.DataFrame(list_reader, columns=column_names)
-    
         
             
             self.main_dataframe = self.importer.ImportFile(new_dataframe, column_amount,self.settings_xml_dict["hasHeader"])
@@ -211,8 +248,7 @@ class reader():
         except ValueError as value_error:
             print(value_error)
             return
-        except ImportError as import_error:
-            print(import_error)
+
         print(self.main_dataframe)
         return self.main_dataframe
         

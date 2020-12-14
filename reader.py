@@ -212,16 +212,19 @@ class reader():
                 return
 
             if not init:
-                tmp_parameters_list = ["","","",""]
-                tmp_values_list = ["","","",""]
+                parameters = {}
                 tmp_settings_list = list(self.settings_xml_dict)
+
                 for i in range(self.parameters_len):
-                    tmp_parameters_list[i] = tmp_settings_list[i]
-                    tmp_values_list[i] = self.settings_xml_dict[tmp_settings_list[i]]
-                print(tmp_values_list, tmp_parameters_list)
+                    key = tmp_settings_list[i]
+                    if len(key) > 0:
+                        value = self.settings_xml_dict[key]
+                        parameters[key] = value
+
+                print(parameters)
+
                 try:
-                    result = str(transformer(xmldoc, **{tmp_parameters_list[0]: tmp_values_list[0]}, **{tmp_parameters_list[1]: tmp_values_list[1]},
-                                        **{tmp_parameters_list[2]: tmp_values_list[2]}))
+                    result = str(transformer(xmldoc, **parameters))
                 except etree.XSLTApplyError as apply_error:
                     print(apply_error)
                 

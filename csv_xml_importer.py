@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-#
-#TODO: verschiedene Ausgaben realisieren
 
 import tkinter as tk
 import pandas as pd

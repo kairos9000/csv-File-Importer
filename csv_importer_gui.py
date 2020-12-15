@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import tkinter as tk
 import pandas as pd
 import io
@@ -15,6 +14,7 @@ from pathlib import Path
 from chardet import detect
 #TODO: für Dateien eine dropdownlist anlegen, um jede Datei einzeln zu konfigurieren
     #also über Liste Datei auswählen=> konfigurieren
+    #oder einfach in Haupt-Listbox Dateieintrag auswählen
 
 
 class model_interface():

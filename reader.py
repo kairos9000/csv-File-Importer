@@ -17,7 +17,6 @@ import csv_xml_importer as cxi
 import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
-#TODO: dict für die Dateien anlegen, da jede Datei ihre eigenen Parameter braucht
 #TODO: verschiedene Ausgaben realisieren    
 
 class reader():
@@ -42,7 +41,6 @@ class reader():
     def addToFilesDict(self, filename:str):
         if filename.endswith('.csv'):
             csv_file_parameter_dict = {"hasHeader":None,
-                                        "wantHeader":False,
                                         "Encoding":None,
                                         "Delimiter": None,
                                         "QuoteChar":None,
@@ -78,7 +76,11 @@ class reader():
     #     return self.opened_xml_files_list
     
     def csvSniffer(self, filename: str):
-        with open(filename, "r") as sniffing_file:
+        if filename.endswith("_", -2, -1):
+            tmp_filename = filename[:-2:]
+        else:
+            tmp_filename = filename
+        with open(tmp_filename, "r") as sniffing_file:
             read_sniffing_file = sniffing_file.read()
             has_header = csv.Sniffer().has_header(read_sniffing_file)
             dialect = csv.Sniffer().sniff(read_sniffing_file)
@@ -87,28 +89,25 @@ class reader():
     def import_with_init_settings(self, filename:str, xsl_file:str=None, notReset:bool=True):    
         if notReset:
             self.addToFilesDict(filename)
-        if filename.endswith("_", -2, -1):
-            tmp_filename = filename[:-2:]
-        else:
-            tmp_filename = filename
-        if tmp_filename.endswith('.csv'):
-            hasSniffHeader, dialect = self.csvSniffer(tmp_filename)
-            self.opened_files_dict[tmp_filename]["hasHeader"] = hasSniffHeader
-            enc = detect(Path(tmp_filename).read_bytes())
-            self.opened_files_dict[tmp_filename]["Encoding"] = enc["encoding"]      
-            self.opened_files_dict[tmp_filename]["Delimiter"] = dialect.delimiter
-            self.opened_files_dict[tmp_filename]["QuoteChar"] = dialect.quotechar
-            self.opened_files_dict[tmp_filename]["skipInitSpace"] = dialect.skipinitialspace
-            self.OpenCSVFile(tmp_filename)
+        last_dict_element = list(self.opened_files_dict.keys())[-1]
+        if last_dict_element.endswith('.csv') or last_dict_element.endswith(".csv_", -6, -1):
+            hasSniffHeader, dialect = self.csvSniffer(last_dict_element)
+            self.opened_files_dict[last_dict_element]["hasHeader"] = hasSniffHeader
+            enc = detect(Path(filename).read_bytes())
+            self.opened_files_dict[last_dict_element]["Encoding"] = enc["encoding"]      
+            self.opened_files_dict[last_dict_element]["Delimiter"] = dialect.delimiter
+            self.opened_files_dict[last_dict_element]["QuoteChar"] = dialect.quotechar
+            self.opened_files_dict[last_dict_element]["skipInitSpace"] = dialect.skipinitialspace
+            self.OpenCSVFile(last_dict_element)
             
                 
             
-        if tmp_filename.endswith('.xml'):
+        if last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", -6, -1):
             if xsl_file == None:
                 print("Choose XSL File to continue")
             elif xsl_file.endswith(".xsl"): 
-                self.getXMLParameters(tmp_filename, xsl_file)             
-                self.OpenXMLFile(tmp_filename, True)
+                self.getXMLParameters(last_dict_element, xsl_file)             
+                self.OpenXMLFile(last_dict_element, True)
             # if notReset:
             #     self.AddtoXMLList(filename)
             
@@ -116,15 +115,14 @@ class reader():
         self.reset()
         self.importer.reset()
         for filename in self.opened_files_dict.keys():
-            if filename.endswith("_", -2, -1):
-                tmp_filename = filename[:-2:]
-            else:
-                tmp_filename = filename
-            if tmp_filename.endswith(".csv"):
-                self.OpenCSVFile(tmp_filename)  
-                self.update_header(tmp_filename, self.opened_files_dict[tmp_filename]["wantHeader"])
-            if tmp_filename.endswith(".xml"):
-                self.OpenXMLFile(tmp_filename, False)
+            
+            if filename.endswith(".csv") or filename.endswith(".csv_", -6, -1):
+                print(filename, self.opened_files_dict[filename]["Delimiter"])
+                #self.update_header(tmp_filename, self.opened_files_dict[tmp_filename]["hasHeader"])
+                self.OpenCSVFile(filename)  
+                
+            elif filename.endswith(".xml") or filename.endswith(".xml_", -6, -1):
+                self.OpenXMLFile(filename, False)
                 #self.update_header(tmp_filename, False)
                 
     
@@ -132,58 +130,50 @@ class reader():
         #self.reset()     
         for other_filenames in self.opened_files_dict.keys():
             if other_filenames == filename:
-                if filename.endswith("_", -2, -1):
-                    tmp_filename = filename[:-2:]
-                else:
-                    tmp_filename = filename
-                if filename.endswith(".csv"):
-                    if wantHeader is not None:
-                        self.opened_files_dict[tmp_filename]["wantHeader"] = wantHeader
-                    if encoding is not None and encoding in self.importer.encodings_list:
-                        self.opened_files_dict[tmp_filename]["Encoding"] = encoding
-                    if Delimiter is not None:
-                        self.opened_files_dict[tmp_filename]["Delimiter"] = Delimiter
-                    if Quotechar is not None:
-                        self.opened_files_dict[tmp_filename]["QuoteChar"] = Quotechar
-                    if skipInitSpace is not None:
-                        self.opened_files_dict[tmp_filename]["skipInitSpace"] = skipInitSpace
-                    if lineTerminator is not None:
-                        self.opened_files_dict[tmp_filename]["lineTerminator"] = lineTerminator
-                    #self.OpenCSVFile(tmp_filename)
-                else:
-                    print("This method is for updating csv Files with personal Parameters only")
+                print(self.opened_files_dict[filename]["Delimiter"])
+                if wantHeader is not None:
+                    self.opened_files_dict[filename]["hasHeader"] = wantHeader
+                if encoding is not None and encoding in self.importer.encodings_list:
+                    self.opened_files_dict[filename]["Encoding"] = encoding
+                if Delimiter is not None:
+                    self.opened_files_dict[filename]["Delimiter"] = Delimiter
+                if Quotechar is not None:
+                    self.opened_files_dict[filename]["QuoteChar"] = Quotechar
+                if skipInitSpace is not None:
+                    self.opened_files_dict[filename]["skipInitSpace"] = skipInitSpace
+                if lineTerminator is not None:
+                    self.opened_files_dict[filename]["lineTerminator"] = lineTerminator
+                #self.OpenCSVFile(tmp_filename)
+                print(self.opened_files_dict[filename]["Delimiter"])
+            
         self.update_dataframe()
             # else:
             #     self.import_with_init_settings(other_filenames, False)
                 
             
             
-    def update_header(self, filename:str, wantHeader:bool=None):
-        if not wantHeader:
-            try:
-                self.default_header = self.importer.find_header_formats(self.main_dataframe)
-            except ImportError as import_error:
-                print(import_error)
-                return
-            main_dataframe_columns = list(self.main_dataframe.columns)
-            default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
-            self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
+    # def update_header(self, filename:str, wantHeader:bool=None):
+    #     if not wantHeader:
+    #         self.default_header = self.importer.find_header_formats(self.main_dataframe)
+    #         main_dataframe_columns = list(self.main_dataframe.columns)
+    #         default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
+    #         self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
 
-        else:
-            if self.opened_files_dict[filename]["hasHeader"]:
-                new_dataframe = pd.read_csv(filename,
-                                            header = None,
-                                            encoding=self.opened_files_dict[filename]["Encoding"],
-                                            sep=self.opened_files_dict[filename]["Delimiter"],
-                                            quotechar= self.opened_files_dict[filename]["QuoteChar"],
-                                            skipinitialspace=self.opened_files_dict[filename]["skipInitSpace"],
-                                            lineterminator=self.opened_files_dict[filename]["lineTerminator"])
-                new_header_list = list(new_dataframe.iloc[0])
-                main_dataframe_columns = list(self.main_dataframe.columns)
-                new_cols = {x: y for x, y in zip(main_dataframe_columns, new_header_list)}
-                self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
-            else:
-                print("File has no header to select")
+    #     else:
+    #         if self.opened_files_dict[filename]["hasHeader"]:
+    #             new_dataframe = pd.read_csv(filename,
+    #                                         header = None,
+    #                                         encoding=self.opened_files_dict[filename]["Encoding"],
+    #                                         sep=self.opened_files_dict[filename]["Delimiter"],
+    #                                         quotechar= self.opened_files_dict[filename]["QuoteChar"],
+    #                                         skipinitialspace=self.opened_files_dict[filename]["skipInitSpace"],
+    #                                         lineterminator=self.opened_files_dict[filename]["lineTerminator"])
+    #             new_header_list = list(new_dataframe.iloc[0])
+    #             main_dataframe_columns = list(self.main_dataframe.columns)
+    #             new_cols = {x: y for x, y in zip(main_dataframe_columns, new_header_list)}
+    #             self.main_dataframe = self.main_dataframe.rename(columns=new_cols)
+    #         else:
+    #             print("File has no header to select")
             # for filename in self.opened_csv_files_list:
             #     if filename.endswith("_", -2, -1):
             #         tmp_filename = filename[:-2:]
@@ -202,14 +192,18 @@ class reader():
             #     self.main_dataframe = self.main_dataframe.rename(columns=default_cols)
         
     
-    def OpenCSVFile(self, filename:str):    
+    def OpenCSVFile(self, filename:str): 
         if self.opened_files_dict[filename]["hasHeader"]:
             header = "infer"             
         else:
             header = None
-        
+        if filename.endswith("_", -2, -1):
+            tmp_filename = filename[:-2:]
+        else:
+            tmp_filename = filename
+        print(tmp_filename, header, self.opened_files_dict[filename]["Delimiter"])
         try:
-            new_dataframe = pd.read_csv(filename,
+            new_dataframe = pd.read_csv(tmp_filename,
                                         header = header,
                                         encoding=self.opened_files_dict[filename]["Encoding"],
                                         sep=self.opened_files_dict[filename]["Delimiter"],
@@ -229,8 +223,6 @@ class reader():
             print(value_error)
             return
 
-        except ImportError as import_error:
-            print(import_error)
         print(self.main_dataframe)
         return self.main_dataframe
     
@@ -243,33 +235,43 @@ class reader():
             self.opened_files_dict[filename][param_matches[index]["name"]] = param_matches[index]["select"]
         self.opened_files_dict[filename]["xsl_file"] = xsl_file
         self.opened_files_dict[filename]["parameters_len"] = len(param_matches)
+        self.opened_files_dict[filename]["hasHeader"] = None
     
-    def addXMLParameter(self, filename:str, param:str, value:str):  
-        if filename in self.opened_files_dict.keys():
-            if filename.endswith("_", -2, -1):
-                tmp_filename = filename[:-2:]
-                if not tmp_filename.endswith(".xml"):
-                    print("This method is for updating xml Files with personal Parameters only")
-                    return
-                 
-            if param in self.opened_files_dict[filename].keys():
-                self.opened_files_dict[filename][param] = "'"+value+"'"
-                self.update_dataframe()
-                #self.OpenXMLFile(filename, self.settings_xml_dict["xsl_file"], False)
+    def addXMLParameter(self, filename:str, param:str = None, value:str = None, wantHeader:bool = None):  
+        if param is not None and value is not None:
+
+            if filename.endswith('.xml') or filename.endswith(".xml_", -6, -1):
+                if filename in self.opened_files_dict.keys():
+                    # if filename.endswith("_", -2, -1):
+                    #     tmp_filename = filename[:-2:]                         
+                    if param in self.opened_files_dict[filename].keys():
+                        self.opened_files_dict[filename][param] = "'"+value+"'"
+                        self.update_dataframe()
+                        #self.OpenXMLFile(filename, self.settings_xml_dict["xsl_file"], False)
+                    else:
+                        print("Parameter could not be found in XSL-Stylesheet")
+                else:
+                    print("XML-File is not in List")
             else:
-                print("Parameter could not be found in XSL-Stylesheet")
-        else:
-            print("XML-File is not in List")
+                print("This method is for updating xml Files with personal Parameters only")
+                return
+        if wantHeader is not None:
+            self.opened_files_dict[filename]["hasHeader"] = wantHeader
+            self.update_dataframe()
             
 
              
         
         
     
-    def OpenXMLFile(self, filename, init:bool):
+    def OpenXMLFile(self, filename:str, init:bool):
+        if filename.endswith("_", -2, -1):
+            tmp_filename = filename[:-2:]
+        else:
+            tmp_filename = filename
         try:
             try:
-                xmldoc = etree.parse(filename)
+                xmldoc = etree.parse(tmp_filename)
             except lxml.etree.ParseError as parse_error:
                 print(parse_error)
                 return
@@ -302,21 +304,28 @@ class reader():
             list_reader = list(reader)
             column_amount = len(list_reader[0])
             
-            header_regex_list = []
-            header_regex_list = self.importer.regex_list_filler(header_regex_list, list_reader[0])
-            splice_len = 1
-            string_splice_len = splice_len + 1
-            for i, header_column_name in enumerate(header_regex_list):
-                header_regex_list[i] = header_column_name[string_splice_len:]
-                splice_len += 1
-                string_splice_len = ceil(log(splice_len, 10)+1)
-                
-            if any(column != "String" for column in header_regex_list):
-                self.opened_files_dict[filename]["hasHeader"] = False
-                column_names = None            
+            if init:             
+                header_regex_list = []
+                header_regex_list = self.importer.regex_list_filler(header_regex_list, list_reader[0])
+                splice_len = 1
+                string_splice_len = splice_len + 1
+                for i, header_column_name in enumerate(header_regex_list):
+                    header_regex_list[i] = header_column_name[string_splice_len:]
+                    splice_len += 1
+                    string_splice_len = ceil(log(splice_len, 10)+1)
+                    
+                if any(column != "String" for column in header_regex_list):
+                    self.opened_files_dict[filename]["hasHeader"] = False
+                    column_names = None            
+                else:
+                    self.opened_files_dict[filename]["hasHeader"] = True              
+                    column_names = list_reader.pop(0)
+            
             else:
-                self.opened_files_dict[filename]["hasHeader"] = True              
-                column_names = list_reader.pop(0)
+                if self.opened_files_dict[filename]["hasHeader"]:
+                    column_names = list_reader.pop(0)
+                if not self.opened_files_dict[filename]["hasHeader"]:
+                    column_names = None
             
             new_dataframe = pd.DataFrame(list_reader, columns=column_names)
         

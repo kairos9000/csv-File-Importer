@@ -59,7 +59,7 @@ class model():
                             r"^((ftp|http|https):\/\/)?(www\.)?(ftp|http|https|www\.)?([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-]+)+((\/)([\w].*)+(#|\?)*)*((\/)*\w+\?[a-zA-Z0-9_]+=\w+(&[a-zA-Z0-9_]+=\w+)*)?$"
                         ),               
                         "Bool": re.compile(
-                            r"^(True|true|TRUE|Wahr|wahr|WAHR|False|false|FALSE|Falsch|falsch|FALSCH)$"
+                           r"^(wahr|falsch|ja|nein|yes|no|true|false|t|f|1|0)$", flags=re.IGNORECASE
                         )      
                     }
         self.main_dataframe = pd.DataFrame()
@@ -162,13 +162,16 @@ class model():
                   
             row_counter += 1   
         key_list = type_lists_dict["first_row"]
+
         for key in type_lists_dict.keys():
             if key_list != type_lists_dict[key] and len(type_lists_dict[key]) != 0:
+                key_list_counter = 0
                 for key_list_item, other_list_item in zip(key_list,type_lists_dict[key]):
                     if key_list_item != other_list_item:
-                        key_list_item = key_list_item[0:2]+"String"
+                        key_list[key_list_counter] = key_list_item[0:2]+"String"
                         other_list_item = other_list_item[0:2]+"String"
-                raise ImportError("The column formats are not consistent")
+                    key_list_counter += 1
+                #raise ImportError("The column formats are not consistent")
                 
         return key_list
     

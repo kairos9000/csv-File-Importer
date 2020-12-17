@@ -171,7 +171,6 @@ class model():
                         key_list[key_list_counter] = key_list_item[0:2]+"String"
                         other_list_item = other_list_item[0:2]+"String"
                     key_list_counter += 1
-                #raise ImportError("The column formats are not consistent")
                 
         return key_list
     

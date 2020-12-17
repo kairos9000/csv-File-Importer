@@ -23,7 +23,7 @@ class reader():
     def __init__(self):
         self.opened_files_dict : dict = {}
         #self.opened_csv_files_list : list =  []
-       #self.settings_csv_dict : dict = {"hasHeader":None,"wantHeader":False,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}        
+        #self.settings_csv_dict : dict = {"hasHeader":None,"wantHeader":False,"Encoding":None,"Delimiter": None, "QuoteChar":None,"skipInitSpace":None,"lineTerminator":None}        
         #self.opened_xml_files_list : list =  []
         #self.settings_xml_dict : dict = {}
         self.multiple_files_counter : int = 0
@@ -76,7 +76,12 @@ class reader():
     #     return self.opened_xml_files_list
     
     def csvSniffer(self, filename: str):
-        if filename.endswith("_", -2, -1):
+        if self.multiple_files_counter <= 1:
+            endswith_slice = -2
+        else:
+            endswith_slice = floor(log(self.multiple_files_counter, 10)+2)
+            endswith_slice *= -1
+        if filename.endswith("_", endswith_slice, -1):
             tmp_filename = filename[:-2:]
         else:
             tmp_filename = filename
@@ -90,7 +95,12 @@ class reader():
         if notReset:
             self.addToFilesDict(filename)
         last_dict_element = list(self.opened_files_dict.keys())[-1]
-        if last_dict_element.endswith('.csv') or last_dict_element.endswith(".csv_", -6, -1):
+        if self.multiple_files_counter <= 1:
+            endswith_slice = -6
+        else:
+            endswith_slice = floor(log(self.multiple_files_counter, 10)+6)
+            endswith_slice *= -1
+        if last_dict_element.endswith('.csv') or last_dict_element.endswith(".csv_", endswith_slice, -1):
             hasSniffHeader, dialect = self.csvSniffer(last_dict_element)
             self.opened_files_dict[last_dict_element]["hasHeader"] = hasSniffHeader
             enc = detect(Path(filename).read_bytes())
@@ -102,7 +112,7 @@ class reader():
             
                 
             
-        if last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", -6, -1):
+        if last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", endswith_slice, -1):
             if xsl_file == None:
                 print("Choose XSL File to continue")
             elif xsl_file.endswith(".xsl"): 
@@ -115,13 +125,17 @@ class reader():
         self.reset()
         self.importer.reset()
         for filename in self.opened_files_dict.keys():
-            
-            if filename.endswith(".csv") or filename.endswith(".csv_", -6, -1):
+            if self.multiple_files_counter <= 1:
+                endswith_slice = -6
+            else:
+                endswith_slice = floor(log(self.multiple_files_counter, 10)+6)
+                endswith_slice *= -1
+            if filename.endswith(".csv") or filename.endswith(".csv_", endswith_slice, -1):
                 print(filename, self.opened_files_dict[filename]["Delimiter"])
                 #self.update_header(tmp_filename, self.opened_files_dict[tmp_filename]["hasHeader"])
                 self.OpenCSVFile(filename)  
                 
-            elif filename.endswith(".xml") or filename.endswith(".xml_", -6, -1):
+            elif filename.endswith(".xml") or filename.endswith(".xml_", endswith_slice, -1):
                 self.OpenXMLFile(filename, False)
                 #self.update_header(tmp_filename, False)
                 
@@ -132,6 +146,9 @@ class reader():
             if other_filenames == filename:
                 print(self.opened_files_dict[filename]["Delimiter"])
                 if wantHeader is not None:
+                    if wantHeader == False:
+                        for key in self.opened_files_dict.keys():
+                            self.opened_files_dict[key]["hasHeader"] = wantHeader
                     self.opened_files_dict[filename]["hasHeader"] = wantHeader
                 if encoding is not None and encoding in self.importer.encodings_list:
                     self.opened_files_dict[filename]["Encoding"] = encoding
@@ -197,8 +214,13 @@ class reader():
             header = "infer"             
         else:
             header = None
-        if filename.endswith("_", -2, -1):
-            tmp_filename = filename[:-2:]
+        if self.multiple_files_counter <= 1:
+            endswith_slice = -2
+        else:
+            endswith_slice = floor(log(self.multiple_files_counter, 10)+2)
+            endswith_slice *= -1
+        if filename.endswith("_", endswith_slice, -1):
+            tmp_filename = filename[:endswith_slice:]
         else:
             tmp_filename = filename
         print(tmp_filename, header, self.opened_files_dict[filename]["Delimiter"])
@@ -239,8 +261,12 @@ class reader():
     
     def addXMLParameter(self, filename:str, param:str = None, value:str = None, wantHeader:bool = None):  
         if param is not None and value is not None:
-
-            if filename.endswith('.xml') or filename.endswith(".xml_", -6, -1):
+            if self.multiple_files_counter <= 1:
+                endswith_slice = -6
+            else:
+                endswith_slice = floor(log(self.multiple_files_counter, 10)+6)
+                endswith_slice *= -1
+            if filename.endswith('.xml') or filename.endswith(".xml_", endswith_slice, -1):
                 if filename in self.opened_files_dict.keys():
                     # if filename.endswith("_", -2, -1):
                     #     tmp_filename = filename[:-2:]                         
@@ -265,8 +291,13 @@ class reader():
         
     
     def OpenXMLFile(self, filename:str, init:bool):
-        if filename.endswith("_", -2, -1):
-            tmp_filename = filename[:-2:]
+        if self.multiple_files_counter <= 1:
+            endswith_slice = -2
+        else:
+            endswith_slice = floor(log(self.multiple_files_counter, 10)+2)
+            endswith_slice *= -1
+        if filename.endswith("_", endswith_slice, -1):
+            tmp_filename = filename[:endswith_slice:]
         else:
             tmp_filename = filename
         try:

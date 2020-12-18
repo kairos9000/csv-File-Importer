@@ -348,17 +348,13 @@ class reader():
         self.main_dataframe.to_csv(exported_file_path, index=False, sep=delimiter, encoding=encoding, quotechar = quotechar, line_terminator = line_terminator)
         return
 
-    def exportAsXMLFile(self, exported_file_path:str, encoding:str = "UTF-8"):
-        def to_xml(df, filename=None, mode='w'):
-            def row_to_xml(row):
-                xml = ['<item>']
-                for i, col_name in enumerate(row.index):
-                    xml.append('  <field name="{0}">{1}</field>'.format(col_name, row.iloc[i]))
-                xml.append('</item>')
-                return '\n'.join(xml)
-            res = '\n'.join(df.apply(row_to_xml, axis=1))
+    def exportAsXMLFile(self, exported_file_path: str, encoding: str="UTF-8"):
+        root = etree.Element("root")
+        for index, row in self.main_dataframe.iterrows():
+            xml_row = etree.SubElement(root, "row_"+str(index))
+            for elem in row.index:
+                xml_row_elem = etree.SubElement(xml_row, elem)
+                xml_row_elem.text = str(row[elem])
 
-            if filename is None:
-                return res
-            with open(filename, mode) as f:
-                f.write(res)
+        document = etree.ElementTree(root)
+        document.write(exported_file_path, pretty_print=True, xml_declaration=True,  encoding=encoding)

@@ -4,8 +4,8 @@ import tkinter as tk
 import pandas as pd
 import io
 from tkinter import ttk 
-from pandastable import Table
-import csv_reader
+from pandastable import Table, TableModel
+import reader
 import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename
@@ -22,43 +22,47 @@ class model_interface():
     model-view-separation principle"""
 
     def __init__(self):
-        self.model = csv_reader.csv_importer()
-        self.importer = cxi.model()
+        self.reader = reader.reader()
         self.__index = 0
+        self.main_dataframe = pd.DataFrame()
         
     def getEncodingsList(self):
-        return self.importer.getEncodingsListFunctionality()
+        return self.reader.giveEncodingsListFurther()
     
-    def getDataframe(self):
-        return self.model.getDataframeFunctionality()
+    def updateDataframe(self):
+        self.main_dataframe = self.reader.giveDataframe()
 
     def ShowFilesInterface(self, listbox):
         try:
            
             self.__names = askopenfilenames()
             for filename in self.__names:
-                self.model.OpenCSVFile(filename)
-            self.__filenames = self.model.opened_csv_files_list
+                try:
+                    self.reader.read_with_init_settings(filename)
+                except ValueError as value_error:
+                    showerror("Error!", value_error)
+                    
+            self.__filenames_dict = self.reader.opened_files_dict
             listbox.delete(0, self.__index)
-            for name in self.__filenames:
+            for name in self.__filenames_dict.keys():
                     listbox.insert(self.__index, name)
                     self.__index += 1   
         except OSError:
             showerror("Error!", "File could not be opened!")
         except ValueError:
-            showerror("Error!", "Only CSV Files are allowed!")
+            showerror("Error!", "Only CSV or XML Files are allowed!")
 
         return self
     
-    def OpenFilesInterface(self, encoding, table, listbox):
-        try:
-            self.__csv_file = self.model.OpenCSVFile(encoding)
-        #         table.redraw()
+    # def OpenFilesInterface(self, encoding, table, listbox):
+    #     try:
+    #         self.__csv_file = self.reader.OpenCSVFile(encoding)
+    #     #         table.redraw()
                 
             
-        except OSError as e:
-            listbox.delete(self.__index-1)
-            showerror("Error!", e)
+    #     except OSError as e:
+    #         listbox.delete(self.__index-1)
+    #         showerror("Error!", e)
                 
             
             
@@ -69,23 +73,23 @@ class model_interface():
             return
         for elem in selected_elems[::-1]:
             elem_name = listbox.get(elem)
-            self.model.RemoveFilesFunctionality(elem_name)
+            self.reader.RemoveFilesFunctionality(elem_name)
             listbox.delete(elem)
 
-        if len(self.model.opened_csv_files_list) == 0:
+        if len(self.__filenames_dict) == 0:
             self.__index = 0
         return self
 
     def ClearAllFilesInterface(self, listbox):
         listbox.delete(0, self.__index)
-        self.model.ClearAllFilesFunctionality()
+        self.reader.ClearAllFilesFunctionality()
         self.__index = 0
         return self
 
-    def MergeFilesInterface(self):
-        if len(self.model.opened_csv_files_list) == 0:
-            showwarning("Warning", "No CSV Files to import selected!")
-            return
+    # def MergeFilesInterface(self):
+    #     if len(self.reader.opened_csv_files_list) == 0:
+    #         showwarning("Warning", "No CSV Files to import selected!")
+    #         return
         # save_file = asksaveasfilename(defaultextension=".csv",
         #                               filetypes=[("CSV file", "*.csv")],
         #                               initialfile="import.csv")
@@ -107,7 +111,7 @@ class model_interface():
         # pdfOutput = open(save_file, 'wb')
         # pdfWriter.write(pdfOutput)
         # pdfOutput.close()
-        return self
+        #return self
 
 
 class view(model_interface):
@@ -154,9 +158,9 @@ class view(model_interface):
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
 
-        self.helpMenu = tk.Menu(self.menu)
-        self.menu.add_cascade(label="Help", menu=self.helpMenu)
-        self.helpMenu.add_command(label="About", command=self.About)
+        # self.helpMenu = tk.Menu(self.menu)
+        # self.menu.add_cascade(label="Help", menu=self.helpMenu)
+        # self.helpMenu.add_command(label="About", command=self.About)
 
         self.button_addFile = tk.Button(
             file_buttons_frame, text="Add CSV-File", command=self.OpenFileGUI)
@@ -168,7 +172,7 @@ class view(model_interface):
             file_buttons_frame, text="Remove all Files", command=self.ClearAllFilesGUI)
         self.button_removeAllFiles.pack(side=tk.TOP, padx=5, pady=5)
         
-        self.preview_table = Table(self.preview_table_Labelframe, dataframe=super().getDataframe())
+        self.preview_table = Table(self.preview_table_Labelframe, dataframe=self.main_dataframe)
         self.preview_table.show()
 
         self.button_exit = tk.Button(
@@ -186,8 +190,10 @@ class view(model_interface):
     def OpenFileGUI(self):
         try:
             super().ShowFilesInterface(self.listbox)
-            super().OpenFilesInterface(self.encoding_value.get(), self.preview_table, self.listbox)
-            #self.preview_table.updateModel(self.Functionality.getDataframe())
+            self.updateDataframe()
+            self.preview_table.updateModel(TableModel(self.main_dataframe))
+            self.preview_table.redraw()
+
         except OSError as e:
             showerror("Error!", e)
 
@@ -198,7 +204,8 @@ class view(model_interface):
         super().ClearAllFilesInterface(self.listbox)
 
     def MergeFilesGUI(self):
-        super().MergeFilesInterface()
+        pass
+        #super().MergeFilesInterface()
 
     def About(self):
         print("This is a simple example of a menu")

@@ -33,6 +33,9 @@ class reader():
     def giveDataframe(self):
         return self.main_dataframe
     
+    def giveEncodingsListFurther(self):
+        return self.importer.giveEncodingsList()
+    
     def addToFilesDict(self, filename:str):
         if filename.endswith('.csv'):
             csv_file_parameter_dict = {"hasHeader":None,
@@ -72,7 +75,7 @@ class reader():
             dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
     
-    def import_with_init_settings(self, filename:str, xsl_file:str=None, notReset:bool=True):    
+    def read_with_init_settings(self, filename:str, xsl_file:str=None, notReset:bool=True):    
         if notReset:
             self.addToFilesDict(filename)
         last_dict_element = list(self.opened_files_dict.keys())[-1]
@@ -91,12 +94,15 @@ class reader():
             self.opened_files_dict[last_dict_element]["skipInitSpace"] = dialect.skipinitialspace
             self.OpenCSVFile(last_dict_element)          
             
-        if last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", endswith_slice, -1):
+        elif last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", endswith_slice, -1):
             if xsl_file == None:
                 print("Choose XSL File to continue")
             elif xsl_file.endswith(".xsl"): 
                 self.getXMLParameters(last_dict_element, xsl_file)             
                 self.OpenXMLFile(last_dict_element, True)
+        
+        else:
+            raise ValueError(last_dict_element)
             
     def update_dataframe(self):
         self.reset()
@@ -151,7 +157,6 @@ class reader():
             tmp_filename = filename[:endswith_slice:]
         else:
             tmp_filename = filename
-        print(tmp_filename, header, self.opened_files_dict[filename]["Delimiter"])
         try:
             new_dataframe = pd.read_csv(tmp_filename,
                                         header = header,
@@ -170,10 +175,9 @@ class reader():
             raise OSError(e)
         
         except ValueError as value_error:
-            print(value_error)
-            return
-
-        print(self.main_dataframe)
+            self.opened_files_dict.pop(filename)
+            raise ValueError(value_error)
+                    
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):
@@ -297,7 +301,6 @@ class reader():
             print(value_error)
             return
 
-        print(self.main_dataframe)
         return self.main_dataframe
         
                 

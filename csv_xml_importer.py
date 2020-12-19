@@ -180,7 +180,7 @@ class model():
         for elem in row:
             elem = str(elem).strip()
             regex_type = self.regex_tester(elem)
-            regex_list.append(str(column_counter)+"_"+ regex_type)
+            regex_list.append(regex_type+"_"+ str(column_counter))
             column_counter += 1
         
         return regex_list

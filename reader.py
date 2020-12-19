@@ -17,7 +17,6 @@ import csv_xml_importer as cxi
 import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
-#TODO: exportAsXMLFile noch realisieren  
 
 class reader():
     def __init__(self):
@@ -353,6 +352,11 @@ class reader():
         for index, row in self.main_dataframe.iterrows():
             xml_row = etree.SubElement(root, "row_"+str(index))
             for elem in row.index:
+                str_elem = str(elem)
+                digit_tester = str_elem[0].isdigit()
+                special_char_tester = map(str_elem.startswith, ("\"","xml",".",",",";","<",">"))
+                if digit_tester or any(special_char_tester):
+                    raise ValueError("Header cannot be converted to XML, because a column starts with a number or a special character")
                 xml_row_elem = etree.SubElement(xml_row, elem)
                 xml_row_elem.text = str(row[elem])
 

@@ -3,8 +3,8 @@ import reader
 importer = reader.reader()
 
 
-importer.import_with_init_settings("regex_test_mitHeader.csv")
-importer.import_with_init_settings("regex_test_mitHeader.csv")
+importer.read_with_init_settings("regex_test_mitHeader.csv")
+importer.read_with_init_settings("regex_test_mitHeader.csv")
 importer.update_csv_with_personal_settings("regex_test_mitHeader.csv_0", False)
 importer.update_csv_with_personal_settings("regex_test_mitHeader.csv_0", True)
 importer.update_csv_with_personal_settings("regex_test_mitHeader.csv", True)

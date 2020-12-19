@@ -68,7 +68,7 @@ class model():
         self.__main_dataframe_has_header:bool = False
         self.main_dataframe_has_default_header:bool = False
                 
-    def getEncodingsListFunctionality(self):
+    def giveEncodingsList(self):
         return self.encodings_list
     
     

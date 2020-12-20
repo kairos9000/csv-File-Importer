@@ -78,10 +78,8 @@ class model():
         if self.main_dataframe.empty:
             self.main_dataframe = new_dataframe
             self.column_amount = column_amount
-            try:
-                self.find_header_formats(self.main_dataframe)
-            except ImportError as import_error:
-                print(import_error)
+            self.find_header_formats(self.main_dataframe)
+
         else:
             if self.column_amount is not column_amount:
                 raise ValueError("The Files have different column amounts")
@@ -95,14 +93,15 @@ class model():
             regex_types_new_dataframe = self.regex_list_filler(regex_types_new_dataframe, type_list_new_dataframe)
             regex_types_main_dataframe = self.regex_list_filler(regex_types_main_dataframe, type_list_main_dataframe)
             splice_len = 1
-            string_splice_len = splice_len + 1
+            string_splice_len = (splice_len + 1)*(-1)
             for item_new, item_main in zip(regex_types_new_dataframe,regex_types_main_dataframe):
-                item_new = item_new[string_splice_len:]
-                item_main = item_main[string_splice_len:]
+                item_new = item_new[:string_splice_len]
+                item_main = item_main[:string_splice_len]
                 splice_len += 1
-                string_splice_len = ceil(log(splice_len, 10)+1)
+                string_splice_len = (ceil(log(splice_len, 10)+1))*(-1)
                 compare_list_new_dataframe.append(item_new)
                 compare_list_main_dataframe.append(item_main)
+
             if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
                 raise ValueError("The Types of the Dataframes are not compatible")
                 
@@ -116,10 +115,7 @@ class model():
             if not hasHeader:
                 new_cols = {x: y for x, y in zip(new_dataframe, self.main_dataframe)}
                 new_dataframe = new_dataframe.rename(columns=new_cols)
-            try:
-                self.find_header_formats(new_dataframe)
-            except ImportError as import_error:
-                print(import_error)
+            
             
             self.main_dataframe = self.main_dataframe.append(new_dataframe)
             
@@ -128,6 +124,7 @@ class model():
             
             
         if not self.__main_dataframe_has_header:
+            
             self.default_header = self.find_header_formats(self.main_dataframe)
             main_dataframe_columns = list(self.main_dataframe.columns)
             default_cols = {x: y for x, y in zip(main_dataframe_columns, self.default_header)}
@@ -162,16 +159,18 @@ class model():
                   
             row_counter += 1   
         key_list = type_lists_dict["first_row"]
-
         for key in type_lists_dict.keys():
             if key_list != type_lists_dict[key] and len(type_lists_dict[key]) != 0:
                 key_list_counter = 0
+                splice_len = 1
+                string_splice_len = (splice_len + 1)*(-1)
                 for key_list_item, other_list_item in zip(key_list,type_lists_dict[key]):
                     if key_list_item != other_list_item:
-                        key_list[key_list_counter] = key_list_item[0:2]+"String"
-                        other_list_item = other_list_item[0:2]+"String"
-                    key_list_counter += 1
-                
+                        key_list[key_list_counter] = "String"+key_list_item[string_splice_len:]
+                        other_list_item = "String"+other_list_item[string_splice_len:]
+                        splice_len += 1
+                        string_splice_len = (ceil(log(splice_len, 10)+1))*(-1)
+                    key_list_counter += 1     
         return key_list
     
     

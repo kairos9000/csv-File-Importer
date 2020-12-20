@@ -352,8 +352,8 @@ class reader():
 
     def exportAsXMLFile(self, exported_file_path: str, encoding: str="UTF-8"):
         root = etree.Element("root")
-        for index, row in self.main_dataframe.iterrows():
-            xml_row = etree.SubElement(root, "row_"+str(index))
+        for _, row in self.main_dataframe.iterrows():
+            xml_row = etree.SubElement(root, "row")
             for elem in row.index:
                 str_elem = str(elem)
                 digit_tester = str_elem[0].isdigit()

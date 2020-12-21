@@ -44,9 +44,12 @@ class model_interface():
                     
             self.__filenames_dict = self.reader.opened_files_dict
             listbox.delete(0, self.__index)
-            for name in self.__filenames_dict.keys():
+            self.__index = 0
+            for name in self.__filenames_dict.keys():        
                     listbox.insert(self.__index, name)
-                    self.__index += 1   
+                    self.__index += 1 
+            listbox.select_set(self.__index-1)
+            listbox.event_generate("<<ListboxSelect>>")  
         except OSError:
             showerror("Error!", "File could not be opened!")
         except ValueError:
@@ -68,13 +71,15 @@ class model_interface():
             
 
     def RemoveFilesInterface(self, listbox):
-        selected_elems = listbox.curselection()
-        if selected_elems == ():
+        selected_elem = listbox.curselection()
+        if selected_elem == ():
             return
-        for elem in selected_elems[::-1]:
-            elem_name = listbox.get(elem)
+        elem_name = listbox.get(selected_elem)
+        if elem_name in self.reader.opened_files_dict:           
             self.reader.RemoveFilesFunctionality(elem_name)
-            listbox.delete(elem)
+            listbox.delete(selected_elem)
+        else:
+            showerror("Error!", "Selected File is not in the List")
 
         if len(self.__filenames_dict) == 0:
             self.__index = 0
@@ -124,21 +129,24 @@ class view(model_interface):
         super().__init__()
 
         self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="CSV-Importer")
-        self.CSV_Importer_Labelframe.pack(padx=10, pady=10)
+        self.CSV_Importer_Labelframe.pack(side=tk.TOP, padx=10, pady=10)
+        
+        self.CSV_Konfigurator_Labelframe = tk.LabelFrame(self.root, text="CSV-Konfigurator")
+        self.CSV_Konfigurator_Labelframe.pack(side=tk.TOP, padx=10, pady=10)
         
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
-        self.preview_table_Labelframe.pack(padx=10, pady=10, side=tk.BOTTOM)
+        self.preview_table_Labelframe.pack(padx=10, pady=10, side=tk.TOP)
        
         
         file_buttons_frame = tk.Frame(self.CSV_Importer_Labelframe)
         file_buttons_frame.pack(side=tk.LEFT)
         listbox_frame = tk.Frame(self.CSV_Importer_Labelframe)
         listbox_frame.pack(side=tk.TOP)
-        encodings_frame = tk.Frame(self.CSV_Importer_Labelframe)
+        encodings_frame = tk.Frame(self.CSV_Konfigurator_Labelframe)
         encodings_frame.pack(side=tk.BOTTOM)
         
         self.listbox = tk.Listbox(
-            listbox_frame, width=100, selectmode=tk.MULTIPLE)
+            listbox_frame, width=100, selectmode=tk.SINGLE)
         scrollbar_x = tk.Scrollbar(listbox_frame, orient="horizontal")
         scrollbar_y = tk.Scrollbar(listbox_frame)
         scrollbar_x.pack(side=tk.BOTTOM, fill=tk.BOTH)
@@ -199,9 +207,15 @@ class view(model_interface):
 
     def RemoveFileGUI(self):
         super().RemoveFilesInterface(self.listbox)
+        self.updateDataframe()
+        self.preview_table.updateModel(TableModel(self.main_dataframe))
+        self.preview_table.redraw()
 
     def ClearAllFilesGUI(self):
         super().ClearAllFilesInterface(self.listbox)
+        self.updateDataframe()
+        self.preview_table.updateModel(TableModel(self.main_dataframe))
+        self.preview_table.redraw()
 
     def MergeFilesGUI(self):
         pass

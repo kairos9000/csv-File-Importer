@@ -46,11 +46,13 @@ class reader():
                                         "lineTerminator":None}
             if filename in self.opened_files_dict:
                 self.opened_files_dict[filename+"_"+str(self.multiple_files_counter)] = csv_file_parameter_dict
+                self.multiple_files_counter += 1
             else:
                 self.opened_files_dict[filename] = csv_file_parameter_dict
         elif filename.endswith('.xml'):
             if filename in self.opened_files_dict:
                 self.opened_files_dict[filename+"_"+str(self.multiple_files_counter)] = {}
+                self.multiple_files_counter += 1
             else:
                 self.opened_files_dict[filename] = {}
         else:
@@ -177,7 +179,7 @@ class reader():
         except ValueError as value_error:
             self.opened_files_dict.pop(filename)
             raise ValueError(value_error)
-                    
+        
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):
@@ -313,10 +315,12 @@ class reader():
     
     def RemoveFilesFunctionality(self, elem_name:str):
         self.opened_files_dict.pop(elem_name)
+        self.update_dataframe()
         return self
 
     def ClearAllFilesFunctionality(self):
         self.opened_files_dict.clear()
+        self.update_dataframe()
         return self
 
     def ExportFilesFunctionality(self):
@@ -341,8 +345,8 @@ class reader():
 
     def importAsNumPyArray(self):
         try:
-            print(self.main_dataframe.to_numpy(dtype="float32"))
-            return self.main_dataframe.to_numpy(dtype="float32")
+            print(self.main_dataframe.to_numpy())
+            return self.main_dataframe.to_numpy()
         except ValueError as value_error:
             print(value_error)
 

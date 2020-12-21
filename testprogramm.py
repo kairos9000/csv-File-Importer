@@ -3,7 +3,7 @@ import reader
 importer = reader.reader()
 
 
-importer.read_with_init_settings("regex_test_mitHeader - Copy.csv")
+importer.read_with_init_settings("C:/Users/Philip/Desktop/testfiles_20201221/fehler/falschesFormat.csv")
 #importer.read_with_init_settings("regex_test.csv")
 #importer.update_csv_with_personal_settings("regex_test.csv_0", False)
 #importer.update_csv_with_personal_settings("regex_test.csv_0", True)

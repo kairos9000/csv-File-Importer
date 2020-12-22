@@ -15,7 +15,7 @@ from chardet import detect
 #TODO: für Dateien eine dropdownlist anlegen, um jede Datei einzeln zu konfigurieren
     #also über Liste Datei auswählen=> konfigurieren
     #oder einfach in Haupt-Listbox Dateieintrag auswählen
-
+#TODO: Encoding Entry Box inaktiv machen wenn es kein File gibt
 
 class model_interface():
     """This class provides the functionality of the project according to the 
@@ -93,15 +93,17 @@ class model_interface():
         return self
 
     def setUserEncoding(self, listbox, wanted_encoding):
+        
         listbox.select_set(self.selected_listbox_elem)
-        listbox.event_generate("<<ListboxSelect>>") 
+        listbox.event_generate("<<ListboxSelect>>")   
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        
         try:
             self.reader.update_csv_with_personal_settings(filename,
                                             None,
                                             wanted_encoding)
-        except UnicodeDecodeError:
+        except LookupError:
             showerror("Error!", "Cannot encode "+filename+" with encoding: "+wanted_encoding)
         except ValueError as value_error:
             showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
@@ -149,7 +151,7 @@ class view(model_interface):
         self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="CSV-Importer")
         self.CSV_Importer_Labelframe.pack(side=tk.TOP, padx=10, pady=10)
         
-        self.CSV_Konfigurator_Labelframe = tk.LabelFrame(self.root, text="CSV-Konfigurator")
+        self.CSV_Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Konfigurator")
         self.CSV_Konfigurator_Labelframe.pack(side=tk.TOP, padx=10, pady=10)
         
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
@@ -174,13 +176,13 @@ class view(model_interface):
         scrollbar_x.config(command=self.listbox.xview)
         scrollbar_y.config(command=self.listbox.yview)
         self.listbox.pack(side=tk.BOTTOM, padx=10, pady=10)
-        encodings_dropdownlist_label = tk.Label(encodings_frame, text="CSV-Encodings: ")
-        encodings_dropdownlist_label.pack(side=tk.LEFT)
-        self.encoding_value = tk.StringVar()
-        self.encoding_dropdownlist = ttk.Combobox(encodings_frame, state="readonly", textvariable=self.encoding_value, values=super().getEncodingsList())     
-        self.encoding_dropdownlist.pack(padx=5,pady=5, side=tk.BOTTOM)
-        self.encoding_value.set("UTF-8")
-        self.encoding_dropdownlist.bind("<<ComboboxSelected>>", self.callback)
+        encodings_textbox_label = tk.Label(encodings_frame, text="Encodings: ")
+        encodings_textbox_label.pack(side=tk.LEFT)
+
+        self.encoding_textbox = tk.Entry(encodings_frame, exportselection=0)     
+        self.encoding_textbox.pack(padx=5,pady=5, side=tk.BOTTOM)
+        self.encoding_textbox.bind("<Return>", self.setFileEncoding)
+        #self.encoding_textbox.bind("<FocusOut>", self.setFileEncoding)
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -240,11 +242,12 @@ class view(model_interface):
         pass
         #super().MergeFilesInterface()
         
-    def callback(self, eventObject):
-        super().setUserEncoding(self.listbox, self.encoding_dropdownlist.get())
-        self.updateDataframe()
+    def setFileEncoding(self, return_event):
+        super().setUserEncoding(self.listbox, self.encoding_textbox.get())      
+        self.updateDataframe()            
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
+        
 
     def About(self):
         print("This is a simple example of a menu")

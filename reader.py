@@ -18,6 +18,7 @@ import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
 
+
 class reader():
     def __init__(self):
         self.opened_files_dict : dict = {}
@@ -127,7 +128,7 @@ class reader():
                         for key in self.opened_files_dict.keys():
                             self.opened_files_dict[key]["hasHeader"] = wantHeader
                     self.opened_files_dict[filename]["hasHeader"] = wantHeader
-                if encoding is not None and encoding in self.importer.encodings_list:
+                if encoding is not None:
                     self.opened_files_dict[filename]["Encoding"] = encoding
                 if Delimiter is not None:
                     self.opened_files_dict[filename]["Delimiter"] = Delimiter
@@ -157,7 +158,6 @@ class reader():
         else:
             tmp_filename = filename
         try:
-            o = b'\x00\x00'
             new_dataframe = pd.read_csv(tmp_filename,
                                         header = header,
                                         encoding=self.opened_files_dict[filename]["Encoding"],
@@ -173,14 +173,25 @@ class reader():
         except OSError as e:
             self.opened_files_dict.pop(filename)
             raise OSError(e)
-        except UnicodeDecodeError:
-            raise UnicodeDecodeError(self.opened_files_dict[filename]["Encoding"], o, 1, 2, "Cannot be encoded")
+        except (UnicodeDecodeError,LookupError):
+            if self.multiple_files_counter <= 1:
+                endswith_slice = -2
+            else:
+                endswith_slice = floor(log(self.multiple_files_counter, 10)+2)
+                endswith_slice *= -1
+            if filename.endswith("_", endswith_slice, -1):
+                tmp_filename = filename[:endswith_slice:]
+            else:
+                tmp_filename = filename
+            enc = detect(Path(tmp_filename).read_bytes())
+            self.opened_files_dict[filename]["Encoding"] = enc["encoding"] 
+            self.update_dataframe()
+            raise LookupError
         except ValueError as value_error:
             #self.opened_files_dict.pop(filename)
             raise ValueError(value_error)
         
             
-        print("Hello")
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):

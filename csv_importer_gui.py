@@ -23,8 +23,9 @@ class model_interface():
 
     def __init__(self):
         self.reader = reader.reader()
-        self.__index = 0
+        self.__index:int = 0
         self.main_dataframe = pd.DataFrame()
+        self.selected_listbox_elem:int = -1
         
     def getEncodingsList(self):
         return self.reader.giveEncodingsListFurther()
@@ -49,11 +50,11 @@ class model_interface():
                     listbox.insert(self.__index, name)
                     self.__index += 1 
             listbox.select_set(self.__index-1)
+            self.selected_listbox_elem = self.__index - 1
             listbox.event_generate("<<ListboxSelect>>")  
         except OSError:
             showerror("Error!", "File could not be opened!")
-        except ValueError:
-            showerror("Error!", "Only CSV or XML Files are allowed!")
+
 
         return self
     
@@ -90,6 +91,23 @@ class model_interface():
         self.reader.ClearAllFilesFunctionality()
         self.__index = 0
         return self
+
+    def setUserEncoding(self, listbox, wanted_encoding):
+        listbox.select_set(self.selected_listbox_elem)
+        listbox.event_generate("<<ListboxSelect>>") 
+        selected_elem = listbox.curselection()
+        filename = listbox.get(selected_elem)
+        try:
+            self.reader.update_csv_with_personal_settings(filename,
+                                            None,
+                                            wanted_encoding)
+        except UnicodeDecodeError:
+            showerror("Error!", "Cannot encode "+filename+" with encoding: "+wanted_encoding)
+        except ValueError as value_error:
+            showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
+        
+            
+        
 
     # def MergeFilesInterface(self):
     #     if len(self.reader.opened_csv_files_list) == 0:
@@ -162,6 +180,7 @@ class view(model_interface):
         self.encoding_dropdownlist = ttk.Combobox(encodings_frame, state="readonly", textvariable=self.encoding_value, values=super().getEncodingsList())     
         self.encoding_dropdownlist.pack(padx=5,pady=5, side=tk.BOTTOM)
         self.encoding_value.set("UTF-8")
+        self.encoding_dropdownlist.bind("<<ComboboxSelected>>", self.callback)
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -220,6 +239,12 @@ class view(model_interface):
     def MergeFilesGUI(self):
         pass
         #super().MergeFilesInterface()
+        
+    def callback(self, eventObject):
+        super().setUserEncoding(self.listbox, self.encoding_dropdownlist.get())
+        self.updateDataframe()
+        self.preview_table.updateModel(TableModel(self.main_dataframe))
+        self.preview_table.redraw()
 
     def About(self):
         print("This is a simple example of a menu")

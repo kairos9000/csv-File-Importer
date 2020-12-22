@@ -56,8 +56,7 @@ class reader():
             else:
                 self.opened_files_dict[filename] = {}
         else:
-            print("Only XML or CSV Files are allowed!")
-            raise ValueError
+            raise ValueError(filename+" is not a CSV or XML File!")
         return self.opened_files_dict
     
     
@@ -102,9 +101,7 @@ class reader():
             elif xsl_file.endswith(".xsl"): 
                 self.getXMLParameters(last_dict_element, xsl_file)             
                 self.OpenXMLFile(last_dict_element, True)
-        
-        else:
-            raise ValueError(last_dict_element)
+
             
     def update_dataframe(self):
         self.reset()
@@ -160,6 +157,7 @@ class reader():
         else:
             tmp_filename = filename
         try:
+            o = b'\x00\x00'
             new_dataframe = pd.read_csv(tmp_filename,
                                         header = header,
                                         encoding=self.opened_files_dict[filename]["Encoding"],
@@ -171,15 +169,18 @@ class reader():
         
         
             self.main_dataframe = self.importer.ImportFile(new_dataframe, column_amount, self.opened_files_dict[filename]["hasHeader"])
-        
+            
         except OSError as e:
             self.opened_files_dict.pop(filename)
             raise OSError(e)
-        
+        except UnicodeDecodeError:
+            raise UnicodeDecodeError(self.opened_files_dict[filename]["Encoding"], o, 1, 2, "Cannot be encoded")
         except ValueError as value_error:
-            self.opened_files_dict.pop(filename)
+            #self.opened_files_dict.pop(filename)
             raise ValueError(value_error)
         
+            
+        print("Hello")
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):
@@ -357,14 +358,20 @@ class reader():
     def exportAsXMLFile(self, exported_file_path: str, encoding: str="UTF-8"):
         root = etree.Element("root")
         for _, row in self.main_dataframe.iterrows():
-            xml_row = etree.SubElement(root, "row")
+            try:
+                xml_row = etree.SubElement(root, "row")
+            except ValueError:
+                raise ValueError(root+" is no valid Root Tag-name")
             for elem in row.index:
                 str_elem = str(elem)
                 digit_tester = str_elem[0].isdigit()
                 special_char_tester = map(str_elem.startswith, ("\"","xml",".",",",";","<",">"))
                 if digit_tester or any(special_char_tester):
                     raise ValueError("Header cannot be converted to XML, because a column starts with a number or a special character")
-                xml_row_elem = etree.SubElement(xml_row, elem)
+                try:
+                    xml_row_elem = etree.SubElement(xml_row, elem)
+                except ValueError:
+                    raise ValueError(elem+" is no valid Item Tag-name")
                 xml_row_elem.text = str(row[elem])
 
         document = etree.ElementTree(root)

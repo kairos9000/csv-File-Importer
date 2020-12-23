@@ -12,10 +12,7 @@ from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
-#TODO: für Dateien eine dropdownlist anlegen, um jede Datei einzeln zu konfigurieren
-    #also über Liste Datei auswählen=> konfigurieren
-    #oder einfach in Haupt-Listbox Dateieintrag auswählen
-#TODO: Encoding Entry Box inaktiv machen wenn es kein File gibt
+#TODO: restliche Parameter von CSV und XML Files in derselben Art änderbar machen wie Encoding-Entry Box
 
 class model_interface():
     """This class provides the functionality of the project according to the 
@@ -27,8 +24,6 @@ class model_interface():
         self.main_dataframe = pd.DataFrame()
         self.selected_listbox_elem:int = -1
         
-    def getEncodingsList(self):
-        return self.reader.giveEncodingsListFurther()
     
     def updateDataframe(self):
         self.main_dataframe = self.reader.giveDataframe()
@@ -42,13 +37,14 @@ class model_interface():
                     self.reader.read_with_init_settings(filename)
                 except ValueError as value_error:
                     showerror("Error!", value_error)
+                    return
                     
             self.__filenames_dict = self.reader.opened_files_dict
             listbox.delete(0, self.__index)
             self.__index = 0
             for name in self.__filenames_dict.keys():        
-                    listbox.insert(self.__index, name)
-                    self.__index += 1 
+                listbox.insert(self.__index, name)
+                self.__index += 1 
             listbox.select_set(self.__index-1)
             self.selected_listbox_elem = self.__index - 1
             listbox.event_generate("<<ListboxSelect>>")  
@@ -107,6 +103,13 @@ class model_interface():
             showerror("Error!", "Cannot encode "+filename+" with encoding: "+wanted_encoding)
         except ValueError as value_error:
             showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
+    
+    def getSniffedEncoding(self, encodings_textbox, selected_file):
+        if selected_file in self.__filenames_dict.keys():
+            encodings_textbox.delete(0, tk.END)
+            encodings_textbox.insert(0, self.__filenames_dict[selected_file]["Encoding"])
+        else:
+            showerror("Error!", "Selected File is not in Listbox")
         
             
         
@@ -176,10 +179,11 @@ class view(model_interface):
         scrollbar_x.config(command=self.listbox.xview)
         scrollbar_y.config(command=self.listbox.yview)
         self.listbox.pack(side=tk.BOTTOM, padx=10, pady=10)
-        encodings_textbox_label = tk.Label(encodings_frame, text="Encodings: ")
-        encodings_textbox_label.pack(side=tk.LEFT)
+        self.listbox.bind("<<ListboxSelect>>", self.listboxSelectionChanged)  
+        self.encodings_textbox_label = tk.Label(encodings_frame, text="Encodings: ", fg="gray")
+        self.encodings_textbox_label.pack(side=tk.LEFT)
 
-        self.encoding_textbox = tk.Entry(encodings_frame, exportselection=0)     
+        self.encoding_textbox = tk.Entry(encodings_frame, exportselection=0, state="disabled")     
         self.encoding_textbox.pack(padx=5,pady=5, side=tk.BOTTOM)
         self.encoding_textbox.bind("<Return>", self.setFileEncoding)
         #self.encoding_textbox.bind("<FocusOut>", self.setFileEncoding)
@@ -225,18 +229,25 @@ class view(model_interface):
 
         except OSError as e:
             showerror("Error!", e)
+        
 
     def RemoveFileGUI(self):
         super().RemoveFilesInterface(self.listbox)
         self.updateDataframe()
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
+        self.encoding_textbox.delete(0, tk.END)
+        self.encodings_textbox_label.config(fg="gray")
+        self.encoding_textbox.config(state="disabled")
 
     def ClearAllFilesGUI(self):
         super().ClearAllFilesInterface(self.listbox)
         self.updateDataframe()
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
+        self.encoding_textbox.delete(0, tk.END)
+        self.encodings_textbox_label.config(fg="gray")
+        self.encoding_textbox.config(state="disabled")
 
     def MergeFilesGUI(self):
         pass
@@ -247,6 +258,15 @@ class view(model_interface):
         self.updateDataframe()            
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
+    
+    def listboxSelectionChanged(self, select_event):
+        listbox_selection_index = self.listbox.curselection()
+        if len(listbox_selection_index) == 0:
+            return
+        else:
+            self.encodings_textbox_label.config(fg="black")
+            self.encoding_textbox.config(state="normal")
+            super().getSniffedEncoding(self.encoding_textbox, self.listbox.get(listbox_selection_index))
         
 
     def About(self):

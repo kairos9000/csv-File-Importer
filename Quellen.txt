@@ -1,6 +1,6 @@
 regex_types: 
-            geo-coordinates-regex: https://regex101.com/r/QTi7y4/1
-            URL-regex: https://regex101.com/r/9BMy6h/5
+            geo-coordinates-regex: https://regex101.com/r/Mfuc3q/1
+            URL-regex: https://regex101.com/r/9BMy6h/6
             time-regex: https://regex101.com/r/iqULdk/4
             mail-regex: https://regex101.com/r/B5gObk/2/
             date-regex: https://regex101.com/r/LzWH0Z/4

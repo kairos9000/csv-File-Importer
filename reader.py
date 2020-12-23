@@ -34,8 +34,6 @@ class reader():
     def giveDataframe(self):
         return self.main_dataframe
     
-    def giveEncodingsListFurther(self):
-        return self.importer.giveEncodingsList()
     
     def addToFilesDict(self, filename:str):
         if filename.endswith('.csv'):
@@ -188,10 +186,9 @@ class reader():
             self.update_dataframe()
             raise LookupError
         except ValueError as value_error:
-            #self.opened_files_dict.pop(filename)
+            self.opened_files_dict.pop(filename)
             raise ValueError(value_error)
-        
-            
+           
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):

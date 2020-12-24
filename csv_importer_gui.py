@@ -12,6 +12,7 @@ from tkinter.filedialog import askopenfilenames, asksaveasfilename
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
+from math import log, ceil, floor 
 #TODO: restliche Parameter von CSV und XML Files in derselben Art änderbar machen wie Encoding-Entry Box
 
 class model_interface():
@@ -88,10 +89,7 @@ class model_interface():
         self.__index = 0
         return self
 
-    def setUserEncoding(self, listbox, wanted_encoding):
-        
-        listbox.select_set(self.selected_listbox_elem)
-        listbox.event_generate("<<ListboxSelect>>")   
+    def setUserEncoding(self, listbox, encoding_textbox, wanted_encoding):        
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         
@@ -99,17 +97,19 @@ class model_interface():
             self.reader.update_csv_with_personal_settings(filename,
                                             None,
                                             wanted_encoding)
+            self.updateEncodingTextbox(encoding_textbox, filename) 
+            return filename
         except LookupError:
+            self.updateEncodingTextbox(encoding_textbox, filename)
             showerror("Error!", "Cannot encode "+filename+" with encoding: "+wanted_encoding)
         except ValueError as value_error:
             showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
     
-    def getSniffedEncoding(self, encodings_textbox, selected_file):
-        if selected_file in self.__filenames_dict.keys():
+    def updateEncodingTextbox(self, encodings_textbox, selected_file):
+        if selected_file is not None:
             encodings_textbox.delete(0, tk.END)
             encodings_textbox.insert(0, self.__filenames_dict[selected_file]["Encoding"])
-        else:
-            showerror("Error!", "Selected File is not in Listbox")
+        
         
             
         
@@ -254,7 +254,7 @@ class view(model_interface):
         #super().MergeFilesInterface()
         
     def setFileEncoding(self, return_event):
-        super().setUserEncoding(self.listbox, self.encoding_textbox.get())      
+        super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())      
         self.updateDataframe()            
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
@@ -264,9 +264,19 @@ class view(model_interface):
         if len(listbox_selection_index) == 0:
             return
         else:
-            self.encodings_textbox_label.config(fg="black")
-            self.encoding_textbox.config(state="normal")
-            super().getSniffedEncoding(self.encoding_textbox, self.listbox.get(listbox_selection_index))
+            if self.reader.multiple_files_counter <= 1:
+                endswith_slice = -6
+            else:
+                endswith_slice = floor(log(self.reader.multiple_files_counter, 10)+6)
+                endswith_slice *= -1
+                
+            selected_file = self.listbox.get(listbox_selection_index)
+            if selected_file.endswith(".csv") or selected_file.endswith(".csv_", endswith_slice, -1):
+                self.encodings_textbox_label.config(fg="black")
+                self.encoding_textbox.config(state="normal")
+                super().updateEncodingTextbox(self.encoding_textbox, selected_file)
+            if selected_file.endswith(".xml") or selected_file.endswith(".xml_", endswith_slice, -1):
+                showwarning("Warning!", "Hello")
         
 
     def About(self):

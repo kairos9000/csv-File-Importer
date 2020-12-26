@@ -109,6 +109,29 @@ class model_interface():
         if selected_file is not None:
             encodings_textbox.delete(0, tk.END)
             encodings_textbox.insert(0, self.__filenames_dict[selected_file]["Encoding"])
+    
+    def setUserDelimiter(self, listbox, delimiter_textbox, wanted_delimiter):
+        selected_elem = listbox.curselection()
+        filename = listbox.get(selected_elem)
+        
+        try:
+            self.reader.update_csv_with_personal_settings(filename,
+                                            None,
+                                            None,
+                                            wanted_delimiter)
+            self.updateDelimiterTextbox(delimiter_textbox, filename) 
+            return filename
+        except LookupError:
+            self.updateEncodingTextbox(delimiter_textbox, filename)
+            showerror("Error!", "Cannot set Delimiter "+ wanted_delimiter+" for "+filename)
+        except ValueError as value_error:
+            showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
+        
+    
+    def updateDelimiterTextbox(self, delimiter_textbox, selected_file):
+        if selected_file is not None:
+            delimiter_textbox.delete(0, tk.END)
+            delimiter_textbox.insert(0, self.__filenames_dict[selected_file]["Delimiter"])
         
         
             
@@ -151,7 +174,7 @@ class view(model_interface):
         self.root.minsize(1000, 300)
         super().__init__()
 
-        self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="CSV-Importer")
+        self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="Importer")
         self.CSV_Importer_Labelframe.pack(side=tk.TOP, padx=10, pady=10)
         
         self.CSV_Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Konfigurator")
@@ -165,8 +188,10 @@ class view(model_interface):
         file_buttons_frame.pack(side=tk.LEFT)
         listbox_frame = tk.Frame(self.CSV_Importer_Labelframe)
         listbox_frame.pack(side=tk.TOP)
-        encodings_frame = tk.Frame(self.CSV_Konfigurator_Labelframe)
-        encodings_frame.pack(side=tk.BOTTOM)
+        self.grid_frame = tk.Frame(self.CSV_Konfigurator_Labelframe)
+        self.grid_frame.pack(side=tk.BOTTOM)
+        self.konfigurator_frame = tk.Frame(self.grid_frame)
+        self.konfigurator_frame.pack(side=tk.BOTTOM)
         
         self.listbox = tk.Listbox(
             listbox_frame, width=100, selectmode=tk.SINGLE)
@@ -180,13 +205,19 @@ class view(model_interface):
         scrollbar_y.config(command=self.listbox.yview)
         self.listbox.pack(side=tk.BOTTOM, padx=10, pady=10)
         self.listbox.bind("<<ListboxSelect>>", self.listboxSelectionChanged)  
-        self.encodings_textbox_label = tk.Label(encodings_frame, text="Encodings: ", fg="gray")
-        self.encodings_textbox_label.pack(side=tk.LEFT)
-
-        self.encoding_textbox = tk.Entry(encodings_frame, exportselection=0, state="disabled")     
-        self.encoding_textbox.pack(padx=5,pady=5, side=tk.BOTTOM)
+        
+        self.encodings_textbox_label = tk.Label(self.konfigurator_frame, text="Encoding: ", fg="gray")
+        self.encodings_textbox_label.grid(row=1, column=1, pady=10)
+        self.encoding_textbox = tk.Entry(self.konfigurator_frame, exportselection=0, state="disabled")     
+        self.encoding_textbox.grid(row=1,column=3, padx=10, pady=10)
         self.encoding_textbox.bind("<Return>", self.setFileEncoding)
-        #self.encoding_textbox.bind("<FocusOut>", self.setFileEncoding)
+        
+        self.delimiter_textbox_label = tk.Label(self.konfigurator_frame, text="Delimiter: ", fg="gray")
+        self.delimiter_textbox_label.grid(row=3, column=1, pady=10)
+        self.delimiter_textbox = tk.Entry(self.konfigurator_frame, exportselection=0, state="disabled")     
+        self.delimiter_textbox.grid(row=3, column=3, padx=10, pady=10)
+        self.delimiter_textbox.bind("<Return>", self.setFileDelimiter)       
+        
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -196,10 +227,10 @@ class view(model_interface):
         # self.helpMenu.add_command(label="About", command=self.About)
 
         self.button_addFile = tk.Button(
-            file_buttons_frame, text="Add CSV-File", command=self.OpenFileGUI)
+            file_buttons_frame, text="Add File/s", command=self.OpenFileGUI)
         self.button_addFile.pack(side=tk.TOP, padx=5, pady=5)
         self.button_removeFile = tk.Button(
-            file_buttons_frame, text="Remove selected File/s", command=self.RemoveFileGUI)
+            file_buttons_frame, text="Remove selected File", command=self.RemoveFileGUI)
         self.button_removeFile.pack(side=tk.TOP, padx=5, pady=5)
         self.button_removeAllFiles = tk.Button(
             file_buttons_frame, text="Remove all Files", command=self.ClearAllFilesGUI)
@@ -239,6 +270,10 @@ class view(model_interface):
         self.encoding_textbox.delete(0, tk.END)
         self.encodings_textbox_label.config(fg="gray")
         self.encoding_textbox.config(state="disabled")
+        
+        self.delimiter_textbox.delete(0, tk.END)
+        self.delimiter_textbox_label.config(fg="gray")
+        self.delimiter_textbox.config(state="disabled")
 
     def ClearAllFilesGUI(self):
         super().ClearAllFilesInterface(self.listbox)
@@ -248,19 +283,32 @@ class view(model_interface):
         self.encoding_textbox.delete(0, tk.END)
         self.encodings_textbox_label.config(fg="gray")
         self.encoding_textbox.config(state="disabled")
+        
+        self.delimiter_textbox.delete(0, tk.END)
+        self.delimiter_textbox_label.config(fg="gray")
+        self.delimiter_textbox.config(state="disabled")
 
     def MergeFilesGUI(self):
         pass
         #super().MergeFilesInterface()
         
     def setFileEncoding(self, return_event):
-        super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())      
+        super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())  
+        self.root.focus_set()    
+        self.updateDataframe()            
+        self.preview_table.updateModel(TableModel(self.main_dataframe))
+        self.preview_table.redraw()
+        
+    def setFileDelimiter(self, return_event):
+        super().setUserDelimiter(self.listbox, self.delimiter_textbox, self.delimiter_textbox.get())  
+        self.root.focus_set()    
         self.updateDataframe()            
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
     
     def listboxSelectionChanged(self, select_event):
         listbox_selection_index = self.listbox.curselection()
+        
         if len(listbox_selection_index) == 0:
             return
         else:
@@ -274,7 +322,11 @@ class view(model_interface):
             if selected_file.endswith(".csv") or selected_file.endswith(".csv_", endswith_slice, -1):
                 self.encodings_textbox_label.config(fg="black")
                 self.encoding_textbox.config(state="normal")
+                
+                self.delimiter_textbox_label.config(fg="black")
+                self.delimiter_textbox.config(state="normal")
                 super().updateEncodingTextbox(self.encoding_textbox, selected_file)
+                super().updateDelimiterTextbox(self.delimiter_textbox, selected_file)
             if selected_file.endswith(".xml") or selected_file.endswith(".xml_", endswith_slice, -1):
                 showwarning("Warning!", "Hello")
         

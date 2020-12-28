@@ -42,7 +42,8 @@ class reader():
                                         "Delimiter": None,
                                         "QuoteChar":None,
                                         "skipInitSpace":None,
-                                        "lineTerminator":None}
+                                        "lineTerminator":None,
+                                        "Quoting":None}
             if filename in self.opened_files_dict:
                 self.opened_files_dict[filename+"_"+str(self.multiple_files_counter)] = csv_file_parameter_dict
                 self.multiple_files_counter += 1
@@ -75,9 +76,8 @@ class reader():
             dialect = csv.Sniffer().sniff(read_sniffing_file)
             return has_header, dialect
     
-    def read_with_init_settings(self, filename:str, xsl_file:str=None, notReset:bool=True):    
-        if notReset:
-            self.addToFilesDict(filename)
+    def read_with_init_settings(self, filename:str, xsl_file:str=None):    
+        self.addToFilesDict(filename)
         last_dict_element = list(self.opened_files_dict.keys())[-1]
         if self.multiple_files_counter <= 1:
             endswith_slice = -6
@@ -92,6 +92,7 @@ class reader():
             self.opened_files_dict[last_dict_element]["Delimiter"] = dialect.delimiter
             self.opened_files_dict[last_dict_element]["QuoteChar"] = dialect.quotechar
             self.opened_files_dict[last_dict_element]["skipInitSpace"] = dialect.skipinitialspace
+            self.opened_files_dict[last_dict_element]["Quoting"] = dialect.quoting
             self.OpenCSVFile(last_dict_element)          
             
         elif last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", endswith_slice, -1):
@@ -118,7 +119,7 @@ class reader():
                 self.OpenXMLFile(filename, False)
                 
     
-    def update_csv_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None):   
+    def update_csv_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None, quoting:int=None):   
         for other_filenames in self.opened_files_dict.keys():
             if other_filenames == filename:
                 if wantHeader is not None:
@@ -136,12 +137,14 @@ class reader():
                     self.opened_files_dict[filename]["skipInitSpace"] = skipInitSpace
                 if lineTerminator is not None:
                     self.opened_files_dict[filename]["lineTerminator"] = lineTerminator
+                if quoting is not None:
+                    self.opened_files_dict[filename]["Quoting"] = quoting
 
             
         self.update_dataframe()
         
     
-    def OpenCSVFile(self, filename:str): 
+    def OpenCSVFile(self, filename:str):
         if self.opened_files_dict[filename]["hasHeader"]:
             header = "infer"             
         else:
@@ -162,7 +165,8 @@ class reader():
                                         sep=self.opened_files_dict[filename]["Delimiter"],
                                         quotechar= self.opened_files_dict[filename]["QuoteChar"],
                                         skipinitialspace=self.opened_files_dict[filename]["skipInitSpace"],
-                                        lineterminator=self.opened_files_dict[filename]["lineTerminator"])
+                                        lineterminator=self.opened_files_dict[filename]["lineTerminator"],
+                                        quoting=self.opened_files_dict[filename]["Quoting"])
             column_amount = len(new_dataframe.columns)
         
         
@@ -185,10 +189,10 @@ class reader():
             self.opened_files_dict[filename]["Encoding"] = enc["encoding"] 
             self.update_dataframe()
             raise LookupError
-        except ValueError as value_error:
-            self.opened_files_dict.pop(filename)
+        except (ValueError,pd.errors.ParserError) as value_error:
             raise ValueError(value_error)
-           
+            
+        
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):

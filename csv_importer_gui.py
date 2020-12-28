@@ -8,12 +8,12 @@ from pandastable import Table, TableModel
 import reader
 import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
-from tkinter.filedialog import askopenfilenames, asksaveasfilename
+from tkinter.filedialog import askopenfilenames, asksaveasfilename, askopenfile
 from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
-#TODO: restliche Parameter von CSV realisieren(lineTerminator und quoting(mit integers)) und XML parameter als Listbox mit Entry daneben
+#TODO: XML parameter als Listbox mit Entry daneben
 
 class model_interface():
     """This class provides the functionality of the project according to the 
@@ -36,7 +36,11 @@ class model_interface():
             self.__names = askopenfilenames()
             for filename in self.__names:
                 try:
-                    self.reader.read_with_init_settings(filename)
+                    if filename.endswith(".csv") or filename.endswith(".xml"):
+                        self.reader.read_with_init_settings(filename)
+                    else:
+                        showwarning("Warning!", "Only CSV or XML Files are allowed!")
+                        continue
                 except ValueError as value_error:
                     if filename in self.reader.opened_files_dict.keys():
                         self.reader.opened_files_dict.pop(filename)
@@ -115,7 +119,10 @@ class model_interface():
     def setUserDelimiter(self, listbox, delimiter_textbox, wanted_delimiter):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
-        
+        if len(str(wanted_delimiter)) > 1:
+            showerror("Error!", "Delimiter has to have a length of 1")
+            self.updateDelimiterTextbox(delimiter_textbox, filename)
+            return
         try:
             self.reader.update_csv_with_personal_settings(filename,
                                             None,
@@ -136,7 +143,13 @@ class model_interface():
             showerror("Error!", "Cannot set Delimiter "+ wanted_delimiter+" for "+filename+", because the number of columns would be different")
             return
             
-    def setDelimiterForAllFunctionality(self, wanted_delimiter):
+    def setDelimiterForAllFunctionality(self, listbox, delimiter_textbox, wanted_delimiter):
+        selected_elem = listbox.curselection()
+        filename = listbox.get(selected_elem)
+        if len(str(wanted_delimiter)) > 1:
+            showerror("Error!", "Delimiter has to have a length of 1")
+            self.updateDelimiterTextbox(delimiter_textbox, filename)
+            return
         self.wanted_delimiter_all_files = wanted_delimiter
         for filename in self.reader.opened_files_dict:
             self.reader.opened_files_dict[filename]["Delimiter"] = wanted_delimiter
@@ -226,7 +239,7 @@ class model_interface():
     def setUserLineTerminator(self, listbox, line_terminator_textbox, wanted_line_terminator):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
-        if len(wanted_line_terminator) > 1:
+        if len(str(wanted_line_terminator)) > 1:
             showerror("Error!", "Only length-1 line Terminators are supported")
             self.updateLineTerminatorTextbox(line_terminator_textbox, filename)
             return
@@ -240,7 +253,8 @@ class model_interface():
                                             wanted_line_terminator)
             self.updateLineTerminatorTextbox(line_terminator_textbox, filename) 
             return filename
-        
+        except pd.errors.ParserError as parser_error:
+            showerror("Error!", parser_error)
         except ValueError:
             _,origin_dialect = self.reader.csvSniffer(filename)
             self.reader.opened_files_dict[filename]["lineTerminator"] = origin_dialect.lineterminator
@@ -256,6 +270,9 @@ class model_interface():
             showerror("Error!", type_error)
             return 
         
+        
+
+        
     def updateLineTerminatorTextbox(self, line_terminator_textbox, selected_file):
         if selected_file is not None:
             if self.reader.opened_files_dict[selected_file]["lineTerminator"] == None:
@@ -269,7 +286,6 @@ class model_interface():
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         quoting = quoting_var.get()
-
         self.reader.update_csv_with_personal_settings(filename,
                                                     None,
                                                     None,
@@ -280,6 +296,7 @@ class model_interface():
                                                     quoting,
                                                     )
         self.updateQuotingRadioButtons(quoting_var, filename) 
+        
         return filename
     
     def updateQuotingRadioButtons(self, quoting_var, selected_file):
@@ -318,7 +335,22 @@ class model_interface():
             return
             
         
-            
+    def getXSLFile(self, listbox, xsl_textbox):
+        if len(listbox.curselection()) == 0:
+            showerror("Error!", "No XML-File selected to set Stylesheet for. Please select XML-File in Listbox")
+            return
+        selected_elem = listbox.curselection()
+        filename = listbox.get(selected_elem)
+        xsl_file = askopenfile()
+        if xsl_file.name.endswith(".xsl"):
+            xsl_textbox.config(state="normal")
+            xsl_textbox.delete(0, tk.END)
+            xsl_textbox.insert(0, xsl_file.name)
+            xsl_textbox.config(state="readonly") 
+            self.reader.getXMLParameters(filename, xsl_file.name)  
+            self.reader.OpenXMLFile(filename, True)
+        else:
+            showwarning("Warning!", "Only XSL-Files are allowed")   
         
 
     # def MergeFilesInterface(self):
@@ -358,27 +390,27 @@ class view(model_interface):
         self.root.minsize(1000, 300)
         super().__init__()
         
-        self.CSV_Importer_Labelframe = tk.LabelFrame(self.root, text="Importer")
-        self.CSV_Importer_Labelframe.grid(row=1, column=3, padx=10, pady=10)
+        self.Importer_Labelframe = tk.LabelFrame(self.root, text="Importer")
+        self.Importer_Labelframe.grid(row=1, column=1, padx=10, pady=10)
         
-        self.CSV_Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Konfigurator")
-        self.CSV_Konfigurator_Labelframe.grid(row=3, column=1, padx=10, pady=10)
+        self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Konfigurator")
+        self.Konfigurator_Labelframe.grid(row=3, column=1, padx=10, pady=10)
         
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
-        self.preview_table_Labelframe.grid(row=3, column=3, padx=10, pady=10)
+        self.preview_table_Labelframe.grid(row=3, column=2, padx=10, pady=10)
        
         
-        file_buttons_frame = tk.Frame(self.CSV_Importer_Labelframe)
+        file_buttons_frame = tk.Frame(self.Importer_Labelframe)
         file_buttons_frame.pack(side=tk.LEFT)
-        listbox_frame = tk.Frame(self.CSV_Importer_Labelframe)
+        listbox_frame = tk.Frame(self.Importer_Labelframe)
         listbox_frame.pack(side=tk.TOP)
-        self.grid_frame = tk.Frame(self.CSV_Konfigurator_Labelframe)
+        self.grid_frame = tk.Frame(self.Konfigurator_Labelframe)
         self.grid_frame.pack(side=tk.BOTTOM)
         self.csv_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="CSV-Konfigurator", fg="gray")
-        self.csv_konfigurator_frame.pack(side=tk.BOTTOM, padx=10, pady=10)
+        self.csv_konfigurator_frame.pack(side=tk.LEFT, padx=10, pady=10)
         
         self.listbox = tk.Listbox(
-            listbox_frame, width=100, selectmode=tk.SINGLE)
+            listbox_frame, width=50, selectmode=tk.SINGLE)
         scrollbar_x = tk.Scrollbar(listbox_frame, orient="horizontal")
         scrollbar_y = tk.Scrollbar(listbox_frame)
         scrollbar_x.pack(side=tk.BOTTOM, fill=tk.BOTH)
@@ -398,7 +430,7 @@ class view(model_interface):
         
         self.delimiter_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Delimiter: ", fg="gray")
         self.delimiter_textbox_label.grid(row=3, column=1, pady=10)
-        self.delimiter_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled")     
+        self.delimiter_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
         self.delimiter_textbox.grid(row=3, column=2, padx=10, pady=10)
         self.delimiter_textbox.bind("<Return>", self.setFileDelimiter)   
         self.set_all_delimiter_button = tk.Button(self.csv_konfigurator_frame, text="Set for all Files", state="disabled", command=self.setDelimiterForAll)
@@ -406,7 +438,7 @@ class view(model_interface):
         
         self.quotechar_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Quotechar: ", fg="gray")
         self.quotechar_textbox_label.grid(row=4, column=1, pady=10)
-        self.quotechar_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled")     
+        self.quotechar_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
         self.quotechar_textbox.grid(row=4, column=2, padx=10, pady=10)
         self.quotechar_textbox.bind("<Return>", self.setFileQuotechar) 
         
@@ -424,7 +456,7 @@ class view(model_interface):
         
         self.line_terminator_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Line Terminator: ", fg="gray")
         self.line_terminator_textbox_label.grid(row=7, column=1, pady=10)
-        self.line_terminator_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled")     
+        self.line_terminator_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
         self.line_terminator_textbox.grid(row=7, column=2, padx=10, pady=10)
         self.line_terminator_textbox.bind("<Return>", self.setFileLineTerminator) 
         
@@ -444,6 +476,16 @@ class view(model_interface):
         self.csv_reset_button = tk.Button(self.csv_konfigurator_frame, text="Reset", state="disabled", command=self.csvReset)
         self.csv_reset_button.grid(row=12,column=2, padx=10, pady=10)
         
+        
+        self.xml_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="XML-Konfigurator", fg="gray")
+        self.xml_konfigurator_frame.pack(side=tk.RIGHT, padx=10, pady=10)
+        
+        self.xsl_stylesheet_textbox_label = tk.Label(self.xml_konfigurator_frame, text="XSL-Stylesheet:", fg="gray")
+        self.xsl_stylesheet_textbox_label.grid(row=1, column=1, padx=10, pady=10)
+        self.xsl_stylesheet_textbox = tk.Entry(self.xml_konfigurator_frame, state="disabled", width=50)
+        self.xsl_stylesheet_textbox.grid(row=1, column=2, padx=10)
+        self.button_add_xsl_File = tk.Button(self.xml_konfigurator_frame, text="Choose XSL File", command=self.OpenXSLFile, state="disabled")
+        self.button_add_xsl_File.grid(row=2, column=2)
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -465,15 +507,18 @@ class view(model_interface):
         self.preview_table = Table(self.preview_table_Labelframe, dataframe=self.main_dataframe)
         self.preview_table.show()
 
-        self.button_exit = tk.Button(
-            self.root, text="Cancel", command=self.root.quit)
-        self.button_exit.grid(row=4, column=8, padx=10, pady=10)
+        self.import_export_buttons_frame = tk.Frame(self.root)
+        self.import_export_buttons_frame.grid(row=4, column=2)
+        
         self.button_importCSV = tk.Button(
-            self.root, text="Import", command=self.MergeFilesGUI)
-        self.button_importCSV.grid(row=4, column=6, padx=10, pady=10)
+            self.import_export_buttons_frame, text="Import as...", command=self.MergeFilesGUI)
+        self.button_importCSV.pack(side=tk.LEFT, padx=5)
         self.button_exportCSV = tk.Button(
-            self.root, text="Export as...", command=self.root.quit)
-        self.button_exportCSV.grid(row=4, column=7, padx=10, pady=10)
+            self.import_export_buttons_frame, text="Export as...", command=self.root.quit)
+        self.button_exportCSV.pack(side=tk.LEFT, padx=5)
+        self.button_exit = tk.Button(
+            self.import_export_buttons_frame, text="Cancel", command=self.root.quit)
+        self.button_exit.pack(side=tk.LEFT, padx=5)
 
         self.root.mainloop()
 
@@ -589,7 +634,7 @@ class view(model_interface):
     
     def setDelimiterForAll(self):
         wanted_delimiter = self.delimiter_textbox.get()
-        super().setDelimiterForAllFunctionality(wanted_delimiter)
+        super().setDelimiterForAllFunctionality(self.listbox, self.delimiter_textbox, wanted_delimiter)
         
         self.root.focus_set()    
         self.updateDataframe()            
@@ -618,11 +663,15 @@ class view(model_interface):
         self.preview_table.redraw()
         
     def setFileLineTerminator(self, return_event):
-        super().setUserLineTerminator(self.listbox, self.line_terminator_textbox, self.line_terminator_textbox.get())  
-        self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        super().setUserLineTerminator(self.listbox, self.line_terminator_textbox, self.line_terminator_textbox.get()) 
+        try: 
+            self.root.focus_set()    
+            self.updateDataframe()            
+            self.preview_table.updateModel(TableModel(self.main_dataframe))
+            self.preview_table.redraw()
+        except IndexError as index_error:
+            showerror("Error!", index_error)
+            return
         
     def setFileQuoting(self):
         super().setUserQuoting(self.listbox, self.quoting_var)  
@@ -645,7 +694,15 @@ class view(model_interface):
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
         
-        
+    def OpenXSLFile(self):
+        try:
+            super().getXSLFile(self.listbox, self.xsl_stylesheet_textbox)
+            self.updateDataframe()
+            self.preview_table.updateModel(TableModel(self.main_dataframe))
+            self.preview_table.redraw()
+
+        except OSError as e:
+            showerror("Error!", e)
         
         
     
@@ -697,8 +754,12 @@ class view(model_interface):
                 super().updateSkipSpacesCheckbox(self.skip_spaces_var, selected_file)
                 super().updateLineTerminatorTextbox(self.line_terminator_textbox, selected_file)
                 super().updateQuotingRadioButtons(self.quoting_var, selected_file)
+                
             if selected_file.endswith(".xml") or selected_file.endswith(".xml_", endswith_slice, -1):
-                showwarning("Warning!", "Hello")
+                self.xml_konfigurator_frame.config(fg="black")
+                self.xsl_stylesheet_textbox_label.config(fg="black")
+                self.xsl_stylesheet_textbox.config(state="readonly")
+                self.button_add_xsl_File.config(state="normal")
         
 
     def About(self):

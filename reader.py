@@ -94,13 +94,8 @@ class reader():
             self.opened_files_dict[last_dict_element]["skipInitSpace"] = dialect.skipinitialspace
             self.opened_files_dict[last_dict_element]["Quoting"] = dialect.quoting
             self.OpenCSVFile(last_dict_element)          
+        
             
-        elif last_dict_element.endswith('.xml') or last_dict_element.endswith(".xml_", endswith_slice, -1):
-            if xsl_file == None:
-                print("Choose XSL File to continue")
-            elif xsl_file.endswith(".xsl"): 
-                self.getXMLParameters(last_dict_element, xsl_file)             
-                self.OpenXMLFile(last_dict_element, True)
 
             
     def update_dataframe(self):

@@ -14,6 +14,7 @@ from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
 #TODO: XML parameter als Listbox mit Entry daneben
+#TODO: XML Error handling
 
 class model_interface():
     """This class provides the functionality of the project according to the 
@@ -27,7 +28,7 @@ class model_interface():
         self.wanted_delimiter_all_files:str = None
         
     
-    def updateDataframe(self):
+    def getDataframe(self):
         self.main_dataframe = self.reader.giveDataframe()
 
     def ShowFilesInterface(self, listbox):
@@ -47,7 +48,7 @@ class model_interface():
                     showerror("Error!", value_error)
                     return
             
-            listbox.delete(0, self.__index)
+            listbox.delete(0, tk.END)
             self.__index = 0
             for name in self.reader.opened_files_dict.keys():        
                 listbox.insert(self.__index, name)
@@ -112,8 +113,8 @@ class model_interface():
             showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
     
     def updateEncodingTextbox(self, encodings_textbox, selected_file):
+        encodings_textbox.delete(0, tk.END)
         if selected_file is not None:
-            encodings_textbox.delete(0, tk.END)
             encodings_textbox.insert(0, self.reader.opened_files_dict[selected_file]["Encoding"])
     
     def setUserDelimiter(self, listbox, delimiter_textbox, wanted_delimiter):
@@ -158,8 +159,8 @@ class model_interface():
         
     
     def updateDelimiterTextbox(self, delimiter_textbox, selected_file):
+        delimiter_textbox.delete(0, tk.END)
         if selected_file is not None:
-            delimiter_textbox.delete(0, tk.END)
             delimiter_textbox.insert(0, self.reader.opened_files_dict[selected_file]["Delimiter"])
     
     
@@ -192,24 +193,28 @@ class model_interface():
             return
         
     def updateQuotecharTextbox(self, quotechar_textbox, selected_file):
+        quotechar_textbox.delete(0, tk.END)
         if selected_file is not None:
-            quotechar_textbox.delete(0, tk.END)
             quotechar_textbox.insert(0, self.reader.opened_files_dict[selected_file]["QuoteChar"])
         
     def setUserHeader(self, listbox, header_checkbox_value):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         want_header = bool(header_checkbox_value.get())
-
-        self.reader.update_csv_with_personal_settings(filename,
-                                        want_header,
-                                        )
+        try:
+            self.reader.update_csv_with_personal_settings(filename,
+                                            want_header,
+                                            )
+        except ValueError as value_error:
+            showerror("Error!", value_error)
+            return
         self.updateHeaderCheckbox(header_checkbox_value, filename) 
         return filename
     
         
             
     def updateHeaderCheckbox(self, header_checkbox_value, selected_file):
+        header_checkbox_value.set(0)
         if selected_file is not None:
             selected_file_header = int(self.reader.opened_files_dict[selected_file]["hasHeader"])
             header_checkbox_value.set(selected_file_header)
@@ -232,6 +237,7 @@ class model_interface():
         
             
     def updateSkipSpacesCheckbox(self, skip_spaces_checkbox_value, selected_file):
+        skip_spaces_checkbox_value.set(0)
         if selected_file is not None:
             selected_file_skip_spaces = int(self.reader.opened_files_dict[selected_file]["skipInitSpace"])
             skip_spaces_checkbox_value.set(selected_file_skip_spaces)
@@ -274,12 +280,11 @@ class model_interface():
 
         
     def updateLineTerminatorTextbox(self, line_terminator_textbox, selected_file):
+        line_terminator_textbox.delete(0, tk.END)
         if selected_file is not None:
             if self.reader.opened_files_dict[selected_file]["lineTerminator"] == None:
-                line_terminator_textbox.delete(0, tk.END)
-                line_terminator_textbox.insert(0, "")
+                return
             else:
-                line_terminator_textbox.delete(0, tk.END)
                 line_terminator_textbox.insert(0, ""+self.reader.opened_files_dict[selected_file]["lineTerminator"])
                 
     def setUserQuoting(self, listbox, quoting_var):
@@ -300,6 +305,7 @@ class model_interface():
         return filename
     
     def updateQuotingRadioButtons(self, quoting_var, selected_file):
+        quoting_var.set(0)
         if selected_file is not None:
             selected_file_quoting = self.reader.opened_files_dict[selected_file]["Quoting"]
             quoting_var.set(selected_file_quoting)
@@ -335,22 +341,106 @@ class model_interface():
             return
             
         
-    def getXSLFile(self, listbox, xsl_textbox):
+    def getXSLFile(self, listbox, xsl_textbox, parameter_listbox):
         if len(listbox.curselection()) == 0:
             showerror("Error!", "No XML-File selected to set Stylesheet for. Please select XML-File in Listbox")
-            return
+            return False
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         xsl_file = askopenfile()
+        if xsl_file is None:
+            return
         if xsl_file.name.endswith(".xsl"):
-            xsl_textbox.config(state="normal")
-            xsl_textbox.delete(0, tk.END)
-            xsl_textbox.insert(0, xsl_file.name)
-            xsl_textbox.config(state="readonly") 
-            self.reader.getXMLParameters(filename, xsl_file.name)  
-            self.reader.OpenXMLFile(filename, True)
+            try:
+                self.reader.getXMLParameters(filename, xsl_file.name)  
+            except ValueError as value_error:
+                showerror("Error!", value_error)
+                return False
+            self.reader.opened_files_dict[filename]["xsl_file"] = xsl_file.name
+            self.updateXSLFileTextbox(xsl_textbox, filename)
+            
+            return True
+
         else:
-            showwarning("Warning!", "Only XSL-Files are allowed")   
+            showwarning("Warning!", "Only XSL-Files are allowed") 
+            return False
+    
+    def updateXSLFileTextbox(self, xsl_textbox, selected_file):
+        xsl_textbox.config(state="normal")
+        xsl_textbox.delete(0, tk.END)
+        try:
+            if self.reader.opened_files_dict[selected_file]["xsl_file"] is not None:
+                xsl_textbox.insert(0, self.reader.opened_files_dict[selected_file]["xsl_file"])
+                
+        except KeyError:
+            return
+        xsl_textbox.config(state="readonly") 
+        
+    def showXMLParameterFunctionality(self, listbox, parameter_listbox, filename):      
+        # selected_elem = listbox.curselection()
+        # filename = listbox.get(selected_elem)
+        index = 0
+        tmp_parameters_list = list(self.reader.opened_files_dict[filename])
+        try:
+            for i in range(self.reader.opened_files_dict[filename]["parameters_len"]):
+                parameter_listbox.insert(index, tmp_parameters_list[i])
+                index += 1
+        except KeyError:
+            return
+        
+    def chooseXMLParameter(self, listbox, parameter_listbox, xml_parameters_textbox, filename):
+        
+        try:
+            selected_elem = parameter_listbox.curselection()
+        
+            parameter = parameter_listbox.get(selected_elem)
+        except tk.TclError:
+            return
+        
+        xml_parameters_textbox.config(state="normal")
+        xml_parameters_textbox.delete(0, tk.END)   
+        xml_parameters_textbox.insert(0, self.reader.opened_files_dict[filename][parameter][1:-1])
+    
+    def changeXMLParameter(self, listbox, parameter_listbox, parameters_textbox, filename):
+        try:
+            selected_elem = parameter_listbox.curselection()
+        
+            parameter = parameter_listbox.get(selected_elem)
+        except tk.TclError:
+            return
+        value = parameters_textbox.get()
+        if value is not None:
+            try:
+                self.reader.addXMLParameter(filename, parameter, value)
+            except ValueError as value_error:
+                self.reader.getXMLParameters(filename, self.reader.opened_files_dict[filename]["xsl_file"]) 
+                showerror("Error!", value_error)
+    
+    def setXMLUserHeader(self, listbox, xml_header_var):
+        selected_elem = listbox.curselection()
+        filename = listbox.get(selected_elem)
+        want_header = bool(xml_header_var.get())
+
+        self.reader.addXMLParameter(filename, None, None, want_header)
+        self.updateXMLUserHeader(xml_header_var, listbox) 
+        return filename
+    
+    def updateXMLUserHeader(self, xml_header_var, listbox):
+        selected_elem = listbox.curselection()
+        selected_file = listbox.get(selected_elem)
+        xml_header_var.set(0)
+        if selected_file is not None:
+            selected_file_header = int(self.reader.opened_files_dict[selected_file]["hasHeader"])
+            xml_header_var.set(selected_file_header)
+    
+    def xmlResetFunctionality(self, listbox):
+        selected_elem = listbox.curselection()
+        selected_file = listbox.get(selected_elem)
+        self.reader.getXMLParameters(selected_file, self.reader.opened_files_dict[selected_file]["xsl_file"])
+        return selected_file
+        
+        
+          
         
 
     # def MergeFilesInterface(self):
@@ -399,6 +489,11 @@ class view(model_interface):
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
         self.preview_table_Labelframe.grid(row=3, column=2, padx=10, pady=10)
        
+        self.csv_parameters_list:list = []
+        self.csv_parameters_labels:list = []
+        self.xml_parameters_list:list = []
+        self.xml_parameters_labels:list = []
+        self.filename:str = ""
         
         file_buttons_frame = tk.Frame(self.Importer_Labelframe)
         file_buttons_frame.pack(side=tk.LEFT)
@@ -408,6 +503,7 @@ class view(model_interface):
         self.grid_frame.pack(side=tk.BOTTOM)
         self.csv_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="CSV-Konfigurator", fg="gray")
         self.csv_konfigurator_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        self.csv_parameters_labels.append(self.csv_konfigurator_frame)
         
         self.listbox = tk.Listbox(
             listbox_frame, width=50, selectmode=tk.SINGLE)
@@ -427,6 +523,8 @@ class view(model_interface):
         self.encoding_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled")     
         self.encoding_textbox.grid(row=1,column=2, padx=10, pady=10)
         self.encoding_textbox.bind("<Return>", self.setFileEncoding)
+        self.csv_parameters_labels.append(self.encodings_textbox_label)
+        self.csv_parameters_list.append(self.encoding_textbox)
         
         self.delimiter_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Delimiter: ", fg="gray")
         self.delimiter_textbox_label.grid(row=3, column=1, pady=10)
@@ -434,31 +532,42 @@ class view(model_interface):
         self.delimiter_textbox.grid(row=3, column=2, padx=10, pady=10)
         self.delimiter_textbox.bind("<Return>", self.setFileDelimiter)   
         self.set_all_delimiter_button = tk.Button(self.csv_konfigurator_frame, text="Set for all Files", state="disabled", command=self.setDelimiterForAll)
-        self.set_all_delimiter_button.grid(row=3, column=3, padx=10)    
+        self.set_all_delimiter_button.grid(row=3, column=3, padx=10)
+        self.csv_parameters_labels.append(self.delimiter_textbox_label)
+        self.csv_parameters_list.append(self.delimiter_textbox) 
+        self.csv_parameters_list.append(self.set_all_delimiter_button)   
         
         self.quotechar_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Quotechar: ", fg="gray")
         self.quotechar_textbox_label.grid(row=4, column=1, pady=10)
         self.quotechar_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
         self.quotechar_textbox.grid(row=4, column=2, padx=10, pady=10)
         self.quotechar_textbox.bind("<Return>", self.setFileQuotechar) 
+        self.csv_parameters_labels.append(self.quotechar_textbox_label)
+        self.csv_parameters_list.append(self.quotechar_textbox) 
         
         self.header_var = tk.IntVar()
         self.header_checkbox_label = tk.Label(self.csv_konfigurator_frame, text="Header: ", fg="gray")
         self.header_checkbox_label.grid(row=5, column=1, pady=10)
         self.header_checkbox = tk.Checkbutton(self.csv_konfigurator_frame, state="disabled", command=self.setFileHeader, variable=self.header_var)
         self.header_checkbox.grid(row=5, column=2, padx=10, pady=10)
+        self.csv_parameters_labels.append(self.header_checkbox_label)
+        self.csv_parameters_list.append(self.header_checkbox)
         
         self.skip_spaces_var = tk.IntVar()
         self.skip_spaces_checkbox_label = tk.Label(self.csv_konfigurator_frame, text="Skip Initial Spaces: ", fg="gray")
         self.skip_spaces_checkbox_label.grid(row=6, column=1, pady=10)
         self.skip_spaces_checkbox = tk.Checkbutton(self.csv_konfigurator_frame, state="disabled", command=self.setFileSkipSpaces, variable=self.skip_spaces_var)
         self.skip_spaces_checkbox.grid(row=6, column=2, padx=10, pady=10)
+        self.csv_parameters_labels.append(self.skip_spaces_checkbox_label)
+        self.csv_parameters_list.append(self.skip_spaces_checkbox)
         
         self.line_terminator_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Line Terminator: ", fg="gray")
         self.line_terminator_textbox_label.grid(row=7, column=1, pady=10)
         self.line_terminator_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
         self.line_terminator_textbox.grid(row=7, column=2, padx=10, pady=10)
         self.line_terminator_textbox.bind("<Return>", self.setFileLineTerminator) 
+        self.csv_parameters_labels.append(self.line_terminator_textbox_label)
+        self.csv_parameters_list.append(self.line_terminator_textbox)
         
         self.quoting_var = tk.IntVar()
         self.quoting_var.set(None)
@@ -472,20 +581,77 @@ class view(model_interface):
         self.quote_non_numeric_button.grid(row=9, column=2, padx=10, pady=10)
         self.quote_none_button = tk.Radiobutton(self.csv_konfigurator_frame, text="None", variable=self.quoting_var, value=3, state="disabled", command=self.setFileQuoting)
         self.quote_none_button.grid(row=9, column=3, padx=10, pady=10)
+        self.csv_parameters_labels.append(self.quoting_radiobuttons_label)
+        self.csv_parameters_list.append(self.quote_minimal_button)
+        self.csv_parameters_list.append(self.quote_all_button)
+        self.csv_parameters_list.append(self.quote_non_numeric_button)
+        self.csv_parameters_list.append(self.quote_none_button)
         
         self.csv_reset_button = tk.Button(self.csv_konfigurator_frame, text="Reset", state="disabled", command=self.csvReset)
         self.csv_reset_button.grid(row=12,column=2, padx=10, pady=10)
+        self.csv_parameters_list.append(self.csv_reset_button)
+        
         
         
         self.xml_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="XML-Konfigurator", fg="gray")
         self.xml_konfigurator_frame.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.xml_parameters_labels.append(self.xml_konfigurator_frame)
         
         self.xsl_stylesheet_textbox_label = tk.Label(self.xml_konfigurator_frame, text="XSL-Stylesheet:", fg="gray")
         self.xsl_stylesheet_textbox_label.grid(row=1, column=1, padx=10, pady=10)
-        self.xsl_stylesheet_textbox = tk.Entry(self.xml_konfigurator_frame, state="disabled", width=50)
-        self.xsl_stylesheet_textbox.grid(row=1, column=2, padx=10)
+        xsl_stylesheet_scrollbar_frame = tk.Frame(self.xml_konfigurator_frame)
+        xsl_stylesheet_scrollbar_frame.grid(row=1, column=2, padx=10)
+        scrollbar_x_stylesheet = tk.Scrollbar(xsl_stylesheet_scrollbar_frame, orient="horizontal")
+        self.xsl_stylesheet_textbox = tk.Entry(xsl_stylesheet_scrollbar_frame, state="disabled", width=40, xscrollcommand=scrollbar_x_stylesheet.set)
+        scrollbar_x_stylesheet.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.xsl_stylesheet_textbox.pack(side=tk.BOTTOM)
+        scrollbar_x_stylesheet.config(command=self.xsl_stylesheet_textbox.xview)
         self.button_add_xsl_File = tk.Button(self.xml_konfigurator_frame, text="Choose XSL File", command=self.OpenXSLFile, state="disabled")
         self.button_add_xsl_File.grid(row=2, column=2)
+        self.xml_parameters_labels.append(self.xsl_stylesheet_textbox_label)
+        self.xml_parameters_list.append(self.xsl_stylesheet_textbox)
+        self.xml_parameters_list.append(self.button_add_xsl_File)
+        
+        
+        self.valid_xsl_file = False
+        self.xml_parameters_listbox_label = tk.Label(self.xml_konfigurator_frame, text="XML-Parameters:", fg="gray")
+        self.xml_parameters_listbox_label.grid(row=3, column=1, pady=10, padx=10)
+        xml_parameter_scrollbar_frame = tk.Frame(self.xml_konfigurator_frame)
+        xml_parameter_scrollbar_frame.grid(row=3, column=2, padx=10, pady=10)
+        scrollbar_x_parameters = tk.Scrollbar(xml_parameter_scrollbar_frame, orient="horizontal")
+        scrollbar_y_parameters = tk.Scrollbar(xml_parameter_scrollbar_frame)
+        self.xml_parameter_listbox = tk.Listbox(xml_parameter_scrollbar_frame,
+                                                width=20,
+                                                height=8,
+                                                selectmode=tk.SINGLE,
+                                                state="disabled",
+                                                xscrollcommand=scrollbar_x_parameters.set,
+                                                yscrollcommand=scrollbar_y_parameters.set)
+        self.xml_parameter_listbox.bind("<<ListboxSelect>>", self.showXMLParameter) 
+        scrollbar_x_parameters.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.xml_parameter_listbox.pack(side=tk.LEFT)
+        scrollbar_y_parameters.pack(side=tk.RIGHT, fill=tk.BOTH)
+        scrollbar_x_parameters.config(command=self.xml_parameter_listbox.xview)
+        scrollbar_y_parameters.config(command=self.xml_parameter_listbox.yview)
+        self.xml_parameters_textbox = tk.Entry(self.xml_konfigurator_frame, state="disabled", width=2)
+        self.xml_parameters_textbox.bind("<Return>", self.setXMLParameter)
+        self.xml_parameters_textbox.grid(row=4, column=2)
+        self.xml_parameters_labels.append(self.xml_parameters_listbox_label)
+        self.xml_parameters_list.append(self.xml_parameter_listbox)
+        self.xml_parameters_list.append(self.xml_parameters_textbox)
+        
+        self.xml_header_var = tk.IntVar()
+        self.xml_header_checkbox_label = tk.Label(self.xml_konfigurator_frame, text="Header: ", fg="gray")
+        self.xml_header_checkbox_label.grid(row=5, column=1, pady=10)
+        self.xml_header_checkbox = tk.Checkbutton(self.xml_konfigurator_frame, state="disabled", command=self.setXMLHeader, variable=self.xml_header_var)
+        self.xml_header_checkbox.grid(row=5, column=2, padx=10, pady=10)
+        self.xml_parameters_labels.append(self.xml_header_checkbox_label)
+        self.xml_parameters_list.append(self.xml_header_checkbox)
+        
+        self.xml_reset_button = tk.Button(self.xml_konfigurator_frame, text="Reset", state="disabled", command=self.xmlReset)
+        self.xml_reset_button.grid(row=6, column=2, padx=10, pady=10)
+        self.xml_parameters_list.append(self.xml_reset_button)
+        
 
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
@@ -512,22 +678,27 @@ class view(model_interface):
         
         self.button_importCSV = tk.Button(
             self.import_export_buttons_frame, text="Import as...", command=self.MergeFilesGUI)
-        self.button_importCSV.pack(side=tk.LEFT, padx=5)
+        self.button_importCSV.pack(side=tk.LEFT, padx=5, pady=10)
         self.button_exportCSV = tk.Button(
             self.import_export_buttons_frame, text="Export as...", command=self.root.quit)
-        self.button_exportCSV.pack(side=tk.LEFT, padx=5)
+        self.button_exportCSV.pack(side=tk.LEFT, padx=5, pady=10)
         self.button_exit = tk.Button(
             self.import_export_buttons_frame, text="Cancel", command=self.root.quit)
-        self.button_exit.pack(side=tk.LEFT, padx=5)
+        self.button_exit.pack(side=tk.LEFT, padx=5, pady=10)
 
         self.root.mainloop()
 
+
+    def updatePreview(self):
+        self.getDataframe()
+        self.preview_table.updateModel(TableModel(self.main_dataframe))
+        self.preview_table.redraw()
+        
+        
     def OpenFileGUI(self):
         try:
             super().ShowFilesInterface(self.listbox)
-            self.updateDataframe()
-            self.preview_table.updateModel(TableModel(self.main_dataframe))
-            self.preview_table.redraw()
+            self.updatePreview()
 
         except OSError as e:
             showerror("Error!", e)
@@ -535,84 +706,64 @@ class view(model_interface):
 
     def RemoveFileGUI(self):
         super().RemoveFilesInterface(self.listbox)
-        self.updateDataframe()
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
-        self.csv_konfigurator_frame.config(fg="gray")
+        self.updatePreview()
+        
         self.encoding_textbox.delete(0, tk.END)
-        self.encodings_textbox_label.config(fg="gray")
-        self.encoding_textbox.config(state="disabled")
-        
         self.delimiter_textbox.delete(0, tk.END)
-        self.delimiter_textbox_label.config(fg="gray")
-        self.delimiter_textbox.config(state="disabled")
-        self.set_all_delimiter_button.config(state="disabled")
-        
         self.quotechar_textbox.delete(0, tk.END)
-        self.quotechar_textbox_label.config(fg="gray")
-        self.quotechar_textbox.config(state="disabled")
-        
         self.header_var.set(0)
-        self.header_checkbox_label.config(fg="gray")
-        self.header_checkbox.config(state="disabled")
-        
         self.skip_spaces_var.set(0)
-        self.skip_spaces_checkbox_label.config(fg="gray")
-        self.skip_spaces_checkbox.config(state="disabled")
-        
         self.line_terminator_textbox.delete(0, tk.END)
-        self.line_terminator_textbox_label.config(fg="gray")
-        self.line_terminator_textbox.config(state="disabled")
-        
         self.quoting_var.set(None)
-        self.quoting_radiobuttons_label.config(fg="gray")
-        self.quote_minimal_button.config(state="disabled")
-        self.quote_all_button.config(state="disabled")
-        self.quote_non_numeric_button.config(state="disabled")
-        self.quote_none_button.config(state="disabled")
         
-        self.csv_reset_button.config(state="disabled")
+        for elem in self.csv_parameters_labels:
+            elem.config(fg="gray")
+        for elem in self.csv_parameters_list:
+            elem.config(state="disabled")
+            
+        self.xsl_stylesheet_textbox.config(state="normal")
+        self.xsl_stylesheet_textbox.delete(0, tk.END)
+        self.xsl_stylesheet_textbox.config(state="readonly")
+        self.xml_parameters_textbox.delete(0, tk.END)
+        self.xml_parameter_listbox.delete(0, tk.END)
+        self.xml_header_var.set(0)
+        self.valid_xsl_file = False
+        
+        for elem in self.xml_parameters_labels:
+            elem.config(fg="gray")
+        for elem in self.xml_parameters_list:
+            elem.config(state="disabled")
 
 
     def ClearAllFilesGUI(self):
         super().ClearAllFilesInterface(self.listbox)
-        self.updateDataframe()
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
+        
         self.encoding_textbox.delete(0, tk.END)
-        self.csv_konfigurator_frame.config(fg="gray")
-        self.encodings_textbox_label.config(fg="gray")
-        self.encoding_textbox.config(state="disabled")
-        
         self.delimiter_textbox.delete(0, tk.END)
-        self.delimiter_textbox_label.config(fg="gray")
-        self.delimiter_textbox.config(state="disabled")
-        self.set_all_delimiter_button.config(state="disabled")
-        
         self.quotechar_textbox.delete(0, tk.END)
-        self.quotechar_textbox_label.config(fg="gray")
-        self.quotechar_textbox.config(state="disabled")
-        
         self.header_var.set(0)
-        self.header_checkbox_label.config(fg="gray")
-        self.header_checkbox.config(state="disabled")
-        
         self.skip_spaces_var.set(0)
-        self.skip_spaces_checkbox_label.config(fg="gray")
-        self.skip_spaces_checkbox.config(state="disabled")
-        
         self.line_terminator_textbox.delete(0, tk.END)
-        self.line_terminator_textbox_label.config(fg="gray")
-        self.line_terminator_textbox.config(state="disabled")
-        
         self.quoting_var.set(None)
-        self.quoting_radiobuttons_label.config(fg="gray")
-        self.quote_minimal_button.config(state="disabled")
-        self.quote_all_button.config(state="disabled")
-        self.quote_non_numeric_button.config(state="disabled")
-        self.quote_none_button.config(state="disabled")
         
-        self.csv_reset_button.config(state="disabled")
+        for elem in self.csv_parameters_labels:
+            elem.config(fg="gray")
+        for elem in self.csv_parameters_list:
+            elem.config(state="disabled")
+        
+        self.xsl_stylesheet_textbox.config(state="normal")
+        self.xsl_stylesheet_textbox.delete(0, tk.END)
+        self.xsl_stylesheet_textbox.config(state="readonly")
+        self.xml_parameters_textbox.delete(0, tk.END)
+        self.xml_parameter_listbox.delete(0, tk.END)
+        self.xml_header_var.set(0)
+        self.valid_xsl_file = False
+        
+        for elem in self.xml_parameters_labels:
+            elem.config(fg="gray")
+        for elem in self.xml_parameters_list:
+            elem.config(state="disabled")
 
     def MergeFilesGUI(self):
         pass
@@ -621,54 +772,40 @@ class view(model_interface):
     def setFileEncoding(self, return_event):
         super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())  
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
         
     def setFileDelimiter(self, return_event):
         super().setUserDelimiter(self.listbox, self.delimiter_textbox, self.delimiter_textbox.get())  
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
     
     def setDelimiterForAll(self):
         wanted_delimiter = self.delimiter_textbox.get()
         super().setDelimiterForAllFunctionality(self.listbox, self.delimiter_textbox, wanted_delimiter)
         
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
         
     def setFileQuotechar(self, return_event):
         super().setUserQuotechar(self.listbox, self.quotechar_textbox, self.quotechar_textbox.get())  
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
         
     def setFileHeader(self):
         super().setUserHeader(self.listbox, self.header_var)  
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
     
     def setFileSkipSpaces(self):
         super().setUserSkipSpaces(self.listbox, self.skip_spaces_var)  
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
         
     def setFileLineTerminator(self, return_event):
         super().setUserLineTerminator(self.listbox, self.line_terminator_textbox, self.line_terminator_textbox.get()) 
         try: 
             self.root.focus_set()    
-            self.updateDataframe()            
-            self.preview_table.updateModel(TableModel(self.main_dataframe))
-            self.preview_table.redraw()
+            self.updatePreview()
         except IndexError as index_error:
             showerror("Error!", index_error)
             return
@@ -676,9 +813,7 @@ class view(model_interface):
     def setFileQuoting(self):
         super().setUserQuoting(self.listbox, self.quoting_var)  
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
     
     def csvReset(self):
         selected_file = super().csvReset(self.listbox)
@@ -690,24 +825,66 @@ class view(model_interface):
         super().updateLineTerminatorTextbox(self.line_terminator_textbox, selected_file)
         super().updateQuotingRadioButtons(self.quoting_var, selected_file)
         self.root.focus_set()    
-        self.updateDataframe()            
-        self.preview_table.updateModel(TableModel(self.main_dataframe))
-        self.preview_table.redraw()
+        self.updatePreview()
         
     def OpenXSLFile(self):
         try:
-            super().getXSLFile(self.listbox, self.xsl_stylesheet_textbox)
-            self.updateDataframe()
-            self.preview_table.updateModel(TableModel(self.main_dataframe))
-            self.preview_table.redraw()
+            self.xml_parameter_listbox.config(state="normal")
+            self.valid_xsl_file = super().getXSLFile(self.listbox, self.xsl_stylesheet_textbox, self.xml_parameter_listbox)
+            if self.valid_xsl_file:
+                self.xml_parameters_textbox.config(state="readonly")         
+                self.xml_parameters_listbox_label.config(fg="black")
+                self.xml_header_checkbox_label.config(fg="black")
+                self.xml_header_checkbox.config(state="normal")
+                super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
+                super().updateXMLUserHeader(self.xml_header_var, self.listbox)
+            self.updatePreview()
 
         except OSError as e:
             showerror("Error!", e)
-        
+    
+    def showXMLParameter(self, selection_event):
+        super().chooseXMLParameter(self.listbox, self.xml_parameter_listbox, self.xml_parameters_textbox, self.filename)
+        self.updatePreview()
+    
+    def setXMLParameter(self, return_event):
+        super().changeXMLParameter(self.listbox, self.xml_parameter_listbox, self.xml_parameters_textbox, self.filename)
+        super().chooseXMLParameter(self.listbox, self.xml_parameter_listbox, self.xml_parameters_textbox, self.filename)
+        self.root.focus_set()   
+        self.updatePreview()
+    
+    def setXMLHeader(self):
+        try:
+            super().setXMLUserHeader(self.listbox, self.xml_header_var) 
+        except tk.TclError:
+            showerror("Error!", "No File to set header for selected. Please select File from listbox")
+            return 
+        self.root.focus_set()    
+        self.updatePreview()
+    
+    def xmlReset(self):
+        try:
+            selected_file = super().xmlResetFunctionality(self.listbox)
+            if self.valid_xsl_file:
+                super().updateXSLFileTextbox(self.xsl_stylesheet_textbox, selected_file)
+                self.xml_parameters_listbox_label.config(fg="black")
+                self.xml_parameter_listbox.config(state="normal")
+                self.xml_parameter_listbox.delete(0, tk.END)
+                super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
+                super().updateXMLUserHeader(self.xml_header_var, self.listbox)
+        except tk.TclError:
+            showerror("Error!", "No File to reset selected. Please select File from listbox")
+            return
+        self.root.focus_set()   
+        self.updatePreview()
         
     
     def listboxSelectionChanged(self, select_event):
-        listbox_selection_index = self.listbox.curselection()
+        try:
+            listbox_selection_index = self.listbox.curselection()
+            self.filename = self.listbox.get(listbox_selection_index)
+        except tk.TclError:
+            return
         
         if len(listbox_selection_index) == 0:
             return
@@ -720,33 +897,22 @@ class view(model_interface):
                 
             selected_file = self.listbox.get(listbox_selection_index)
             if selected_file.endswith(".csv") or selected_file.endswith(".csv_", endswith_slice, -1):
-                self.csv_konfigurator_frame.config(fg="black")
-                self.encodings_textbox_label.config(fg="black")
-                self.encoding_textbox.config(state="normal")
+                self.xsl_stylesheet_textbox.config(state="normal")
+                self.xsl_stylesheet_textbox.delete(0, tk.END)
+                self.xsl_stylesheet_textbox.config(state="readonly")
+                self.xml_parameters_textbox.delete(0, tk.END)
+                self.xml_parameter_listbox.delete(0, tk.END)
+                self.xml_header_var.set(0)
+                for elem in self.xml_parameters_labels:
+                    elem.config(fg="gray")
+                for elem in self.xml_parameters_list:
+                    elem.config(state="disabled")
+                    
+                for elem in self.csv_parameters_labels:
+                    elem.config(fg="black")
+                for elem in self.csv_parameters_list:
+                    elem.config(state="normal")
                 
-                self.delimiter_textbox_label.config(fg="black")
-                self.delimiter_textbox.config(state="normal")
-                self.set_all_delimiter_button.config(state="normal")
-                
-                self.quotechar_textbox_label.config(fg="black")
-                self.quotechar_textbox.config(state="normal")
-                
-                self.header_checkbox_label.config(fg="black")
-                self.header_checkbox.config(state="normal")
-                
-                self.skip_spaces_checkbox_label.config(fg="black")
-                self.skip_spaces_checkbox.config(state="normal")
-                
-                self.line_terminator_textbox_label.config(fg="black")
-                self.line_terminator_textbox.config(state="normal")
-                
-                self.quoting_radiobuttons_label.config(fg="black")
-                self.quote_minimal_button.config(state="normal")
-                self.quote_all_button.config(state="normal")
-                self.quote_non_numeric_button.config(state="normal")
-                self.quote_none_button.config(state="normal")
-                
-                self.csv_reset_button.config(state="normal")
                 super().updateEncodingTextbox(self.encoding_textbox, selected_file)
                 super().updateDelimiterTextbox(self.delimiter_textbox, selected_file)
                 super().updateQuotecharTextbox(self.quotechar_textbox, selected_file)
@@ -756,10 +922,37 @@ class view(model_interface):
                 super().updateQuotingRadioButtons(self.quoting_var, selected_file)
                 
             if selected_file.endswith(".xml") or selected_file.endswith(".xml_", endswith_slice, -1):
+                self.encoding_textbox.delete(0, tk.END)
+                self.delimiter_textbox.delete(0, tk.END)
+                self.quotechar_textbox.delete(0, tk.END)
+                self.header_var.set(0)
+                self.skip_spaces_var.set(0)
+                self.line_terminator_textbox.delete(0, tk.END)
+                self.quoting_var.set(None)
+                
+                for elem in self.csv_parameters_labels:
+                    elem.config(fg="gray")
+                for elem in self.csv_parameters_list:
+                    elem.config(state="disabled")
+                self.xml_parameters_textbox.config(state="normal")  
+                self.xml_parameters_textbox.delete(0, tk.END)
+                self.xml_parameters_textbox.config(state="readonly")
+                self.xml_parameter_listbox.delete(0, tk.END)
+                    
                 self.xml_konfigurator_frame.config(fg="black")
                 self.xsl_stylesheet_textbox_label.config(fg="black")
                 self.xsl_stylesheet_textbox.config(state="readonly")
                 self.button_add_xsl_File.config(state="normal")
+                self.xml_header_checkbox.config(state="normal")
+                self.xml_header_checkbox_label.config(fg="black")
+                self.xml_reset_button.config(state="normal")
+                if self.valid_xsl_file:
+                    super().updateXSLFileTextbox(self.xsl_stylesheet_textbox, selected_file)
+                    self.xml_parameters_listbox_label.config(fg="black")
+                    self.xml_parameter_listbox.config(state="normal")
+                    super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
+                    super().updateXMLUserHeader(self.xml_header_var, self.listbox)
+                    
         
 
     def About(self):

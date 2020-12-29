@@ -111,7 +111,7 @@ class reader():
                 self.OpenCSVFile(filename)  
                 
             elif filename.endswith(".xml") or filename.endswith(".xml_", endswith_slice, -1):
-                self.OpenXMLFile(filename, False)
+                self.OpenXMLFile(filename)
                 
     
     def update_csv_with_personal_settings(self, filename:str, wantHeader:bool=None, encoding:str=None, Delimiter:str=None, Quotechar:str=None, skipInitSpace:bool=None,lineTerminator:str=None, quoting:int=None):   
@@ -191,6 +191,7 @@ class reader():
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):
+        self.opened_files_dict[filename] = {}
         tree = ET.parse(xsl_file)
         root = tree.getroot()
         param_matches = [c.attrib for c in root if 'param' in c.tag]
@@ -199,6 +200,8 @@ class reader():
         self.opened_files_dict[filename]["xsl_file"] = xsl_file
         self.opened_files_dict[filename]["parameters_len"] = len(param_matches)
         self.opened_files_dict[filename]["hasHeader"] = None
+        self.opened_files_dict[filename]["init"] = True
+        self.update_dataframe()
     
     def addXMLParameter(self, filename:str, param:str = None, value:str = None, wantHeader:bool = None):  
         if param is not None and value is not None:
@@ -211,24 +214,23 @@ class reader():
                 if filename in self.opened_files_dict.keys():                      
                     if param in self.opened_files_dict[filename].keys():
                         self.opened_files_dict[filename][param] = "'"+value+"'"
-                        self.update_dataframe()
-                    else:
-                        print("Parameter could not be found in XSL-Stylesheet")
-                else:
-                    print("XML-File is not in List")
-            else:
-                print("This method is for updating xml Files with personal Parameters only")
-                return
+            #         else:
+            #             print("Parameter could not be found in XSL-Stylesheet")
+            #     else:
+            #         print("XML-File is not in List")
+            # else:
+            #     print("This method is for updating xml Files with personal Parameters only")
+            #     return
         if wantHeader is not None:
             self.opened_files_dict[filename]["hasHeader"] = wantHeader
-            self.update_dataframe()
+        self.update_dataframe()
             
 
              
         
         
     
-    def OpenXMLFile(self, filename:str, init:bool):
+    def OpenXMLFile(self, filename:str):
         if self.multiple_files_counter <= 1:
             endswith_slice = -2
         else:
@@ -242,58 +244,54 @@ class reader():
             try:
                 xmldoc = etree.parse(tmp_filename)
             except lxml.etree.ParseError as parse_error:
-                print(parse_error)
-                return
+                raise lxml.etree.ParseError(parse_error)
+
             try:
                 transformer = etree.XSLT(etree.parse(self.opened_files_dict[filename]["xsl_file"]))
             except lxml.etree.XSLTParseError as xsl_parse_error:
-                print(xsl_parse_error)
-                return
-
-            if not init:
-                parameters = {}
-                tmp_settings_list = list(self.opened_files_dict[filename])
-
-                for i in range(self.opened_files_dict[filename]["parameters_len"]):
-                    key = tmp_settings_list[i]
-                    if len(key) > 0:
-                        value = self.opened_files_dict[filename][key]
-                        parameters[key] = value
+                raise lxml.etree.XSLTParseError(xsl_parse_error)
 
 
-                try:
-                    result = str(transformer(xmldoc, **parameters))
-                except etree.XSLTApplyError as apply_error:
-                    print(apply_error)
+            parameters = {}
+            tmp_settings_list = list(self.opened_files_dict[filename])
+
+            for i in range(self.opened_files_dict[filename]["parameters_len"]):
+                key = tmp_settings_list[i]
+                if len(key) > 0:
+                    value = self.opened_files_dict[filename][key]
+                    parameters[key] = value
+            try:
+                result = str(transformer(xmldoc, **parameters))
+            except etree.XSLTApplyError as apply_error:
+                raise etree.XSLTApplyError(apply_error)
                 
-            
-            else: 
-                result = str(transformer(xmldoc))
+
             reader = csv.reader(result.splitlines(), delimiter=',')
             list_reader = list(reader)
             column_amount = len(list_reader[0])
             
-            if init:             
+            if self.opened_files_dict[filename]["init"]:             
                 header_regex_list = []
                 header_regex_list = self.importer.regex_list_filler(header_regex_list, list_reader[0])
                 splice_len = 1
-                string_splice_len = splice_len + 1
+                string_splice_len = (splice_len + 1)*(-1)
                 for i, header_column_name in enumerate(header_regex_list):
-                    header_regex_list[i] = header_column_name[string_splice_len:]
+                    header_regex_list[i] = header_column_name[:string_splice_len]
                     splice_len += 1
-                    string_splice_len = ceil(log(splice_len, 10)+1)
-                    
+                    string_splice_len = (ceil(log(splice_len, 10)+1))*(-1)
+  
                 if any(column != "String" for column in header_regex_list):
                     self.opened_files_dict[filename]["hasHeader"] = False
                     column_names = None            
                 else:
                     self.opened_files_dict[filename]["hasHeader"] = True              
                     column_names = list_reader.pop(0)
+                self.opened_files_dict[filename]["init"] = False
             
             else:
                 if self.opened_files_dict[filename]["hasHeader"]:
                     column_names = list_reader.pop(0)
-                if not self.opened_files_dict[filename]["hasHeader"]:
+                elif not self.opened_files_dict[filename]["hasHeader"]:
                     column_names = None
             
             new_dataframe = pd.DataFrame(list_reader, columns=column_names)
@@ -302,14 +300,13 @@ class reader():
             self.main_dataframe = self.importer.ImportFile(new_dataframe, column_amount,self.opened_files_dict[filename]["hasHeader"])
         
         except OSError as os:
-            print(os)
+            raise OSError(os)
             
         except lxml.etree.XSLTApplyError as transform_error:
-            print(transform_error)
+            raise lxml.etree.XSLTApplyError(transform_error)
             
         except ValueError as value_error:
-            print(value_error)
-            return
+            raise ValueError(value_error)
 
         return self.main_dataframe
         

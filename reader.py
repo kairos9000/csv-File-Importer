@@ -214,13 +214,7 @@ class reader():
                 if filename in self.opened_files_dict.keys():                      
                     if param in self.opened_files_dict[filename].keys():
                         self.opened_files_dict[filename][param] = "'"+value+"'"
-            #         else:
-            #             print("Parameter could not be found in XSL-Stylesheet")
-            #     else:
-            #         print("XML-File is not in List")
-            # else:
-            #     print("This method is for updating xml Files with personal Parameters only")
-            #     return
+
         if wantHeader is not None:
             self.opened_files_dict[filename]["hasHeader"] = wantHeader
         self.update_dataframe()
@@ -328,13 +322,6 @@ class reader():
         self.update_dataframe()
         return self
 
-    def ExportFilesFunctionality(self):
-        if len(self.opened_files_dict) == 0:
-            showwarning("Warning", "No CSV Files to import selected!")
-        if len(self.opened_files_dict) == 0:
-            showwarning("Warning", "No XML Files to import selected!")
-
-        return self
     
         
     def importAsDictionary(self):
@@ -353,7 +340,7 @@ class reader():
             print(self.main_dataframe.to_numpy())
             return self.main_dataframe.to_numpy()
         except ValueError as value_error:
-            print(value_error)
+            raise ValueError(value_error)
 
     def exportAsCSVFile(self, exported_file_path: str, encoding: str = "UTF-8", delimiter: str = ",", quotechar:str ="\"", line_terminator:str = "\r\n"):
         self.main_dataframe.to_csv(exported_file_path, index=False, sep=delimiter, encoding=encoding, quotechar = quotechar, line_terminator = line_terminator)

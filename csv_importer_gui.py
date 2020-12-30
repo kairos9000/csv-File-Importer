@@ -13,8 +13,7 @@ from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
-#TODO: XML parameter als Listbox mit Entry daneben
-#TODO: XML Error handling
+#TODO: Kommentare und Dokumentation schreiben
 
 class model_interface():
     """This class provides the functionality of the project according to the 
@@ -438,37 +437,47 @@ class model_interface():
         selected_file = listbox.get(selected_elem)
         self.reader.getXMLParameters(selected_file, self.reader.opened_files_dict[selected_file]["xsl_file"])
         return selected_file
-        
-        
-          
-        
-
-    # def MergeFilesInterface(self):
-    #     if len(self.reader.opened_csv_files_list) == 0:
-    #         showwarning("Warning", "No CSV Files to import selected!")
-    #         return
-        # save_file = asksaveasfilename(defaultextension=".csv",
-        #                               filetypes=[("CSV file", "*.csv")],
-        #                               initialfile="import.csv")
-        # pdfWriter = PdfFileWriter()
-
-        # for filename in self.__opened_files_arr:
-        #     if filename.endswith("_", -2, -1):
-        #         filename = filename[:-2:]
-
-        #     pdfFileObj = open(filename, 'rb')
-        #     pdfReader = PdfFileReader(pdfFileObj)
-
-        #     for pageNum in range(pdfReader.numPages):
-        #         pageObj = pdfReader.getPage(pageNum)
-        #         pdfWriter.addPage(pageObj)
-
-        # if save_file == "":
-        #     return
-        # pdfOutput = open(save_file, 'wb')
-        # pdfWriter.write(pdfOutput)
-        # pdfOutput.close()
-        #return self
+    
+    def finalImporterFunctionality(self, import_var_value):
+        if import_var_value == 1:
+            self.reader.importAsDictionary()
+        elif import_var_value ==2:
+            self.reader.importAsListOfLists()
+        elif import_var_value == 3:
+            try:
+                self.reader.importAsNumPyArray()
+            except ValueError as value_error:
+                raise ValueError(value_error)
+            
+    def finalCSVExportFunctionality(self, encoding, delimiter, quotechar, line_terminator):
+        if len(str(delimiter)) <= 1 and len(str(quotechar)) <= 1 and len(str(line_terminator)) <= 1:
+            if len(str(delimiter)) == 0:
+                delimiter = ","
+            if len(str(quotechar)) == 0:
+                quotechar = "\""
+            if len(str(line_terminator)) == 0:
+                line_terminator = "\r\n"
+            dest_filepath = asksaveasfilename(defaultextension=".csv",
+            filetypes=[("CSV file", "*.csv")],
+            initialfile="export.csv")
+            try:
+                self.reader.exportAsCSVFile(dest_filepath, encoding, delimiter, quotechar, line_terminator)
+            except LookupError as look_up_error:
+                raise LookupError(look_up_error)
+        else:
+            raise ValueError
+            
+    def finalXMLExportFunctionality(self, encoding):
+        dest_filepath = asksaveasfilename(defaultextension=".xml",
+            filetypes=[("XML file", "*.xml")],
+            initialfile="export.xml")
+        try:
+            self.reader.exportAsXMLFile(dest_filepath, encoding)
+        except LookupError as look_up_error:
+            raise LookupError(look_up_error)
+        except ValueError as value_error:
+            raise ValueError(value_error)
+    
 
 
 class view(model_interface):
@@ -677,10 +686,10 @@ class view(model_interface):
         self.import_export_buttons_frame.grid(row=4, column=2)
         
         self.button_importCSV = tk.Button(
-            self.import_export_buttons_frame, text="Import as...", command=self.MergeFilesGUI)
+            self.import_export_buttons_frame, text="Import as...", command=self.ImportAs)
         self.button_importCSV.pack(side=tk.LEFT, padx=5, pady=10)
         self.button_exportCSV = tk.Button(
-            self.import_export_buttons_frame, text="Export as...", command=self.root.quit)
+            self.import_export_buttons_frame, text="Export as...", command=self.ExportAs)
         self.button_exportCSV.pack(side=tk.LEFT, padx=5, pady=10)
         self.button_exit = tk.Button(
             self.import_export_buttons_frame, text="Cancel", command=self.root.quit)
@@ -953,6 +962,126 @@ class view(model_interface):
                     super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
                     super().updateXMLUserHeader(self.xml_header_var, self.listbox)
                     
+    def ImportAs(self):
+        end_index = self.listbox.index("end")
+        if end_index == 0:
+            showinfo("Information", "No Files to import are available")
+        else:
+            import_as_window = tk.Toplevel()
+            import_as_window.geometry('300x300')
+            import_as_window.title("Import as...")
+            self.import_var = tk.IntVar()
+            self.import_var.set(1)
+            dictionary_import_button = tk.Radiobutton(import_as_window, text="Dictionary", variable=self.import_var, value=1)
+            dictionary_import_button.grid(row=1, column=1, padx=10, pady=10)
+            list_of_lists_import_button = tk.Radiobutton(import_as_window, text="List of Lists", variable=self.import_var, value=2)
+            list_of_lists_import_button.grid(row=2, column=1, padx=10, pady=10)
+            numpy_array_import_button = tk.Radiobutton(import_as_window, text="Numpy Array", variable=self.import_var, value=3)
+            numpy_array_import_button.grid(row=3, column=1, padx=10, pady=10)
+            
+            import_button = tk.Button(import_as_window, text="Import", command=self.finalImporter)
+            import_button.grid(row=5, column=3, padx=10, pady=10)
+            
+            cancel_button = tk.Button(import_as_window, text="Cancel", command=import_as_window.destroy)
+            cancel_button.grid(row=5, column=4, padx=10, pady=10)
+    
+    def finalImporter(self):
+        try:
+            super().finalImporterFunctionality(self.import_var.get())
+        except ValueError as value_error:
+            showerror("Error!", value_error)
+            return
+        if self.import_var.get() == 1:
+            showinfo("Information", "The selected Files were imported as a Dictionary")
+        elif self.import_var.get() == 2:
+            showinfo("Information", "The selected Files were imported as a List of Lists")
+        elif self.import_var.get() == 3:
+            showinfo("Information", "The selected Files were imported as a Numpy Array")
+    
+    def ExportAs(self):
+        end_index = self.listbox.index("end")
+        if end_index == 0:
+            showinfo("Information", "No Files to import are available")
+        else:
+            export_as_window = tk.Toplevel()
+            export_as_window.geometry('500x300')
+            export_as_window.title("Export as...")
+            tab_parent = ttk.Notebook(export_as_window)
+            
+            csv_tab = tk.Frame(tab_parent)
+            xml_tab = tk.Frame(tab_parent)
+            
+            tab_parent.add(csv_tab, text="CSV Export")
+            tab_parent.add(xml_tab, text="XML Export")
+            
+            tab_parent.pack(expand=1, fill="both")
+            
+            csv_export_encoding_label = tk.Label(csv_tab, text="Encoding:")
+            csv_export_encoding_label.grid(row=1, column=1, padx=10, pady=10)
+            self.csv_export_encoding = tk.Entry(csv_tab)
+            self.csv_export_encoding.insert(0, "UTF-8")
+            self.csv_export_encoding.grid(row=1, column=2, padx=10, pady=10)
+            
+            csv_export_delimiter_label = tk.Label(csv_tab, text="Delimiter:")
+            csv_export_delimiter_label.grid(row=2, column=1, padx=10, pady=10)
+            self.csv_export_delimiter = tk.Entry(csv_tab, width=2)
+            self.csv_export_delimiter.insert(0, ",")
+            self.csv_export_delimiter.grid(row=2, column=2, padx=10, pady=10)
+            
+            csv_export_quotechar_label = tk.Label(csv_tab, text="Quotechar:")
+            csv_export_quotechar_label.grid(row=3, column=1, padx=10, pady=10)
+            self.csv_export_quotechar = tk.Entry(csv_tab, width=2)
+            self.csv_export_quotechar.insert(0, "\"")
+            self.csv_export_quotechar.grid(row=3, column=2, padx=10, pady=10)
+            
+            csv_export_line_terminator_label = tk.Label(csv_tab, text="Line Terminator:")
+            csv_export_line_terminator_label.grid(row=4, column=1, padx=10, pady=10)
+            self.csv_export_line_terminator = tk.Entry(csv_tab, width=2)
+            self.csv_export_line_terminator.insert(0, "")
+            self.csv_export_line_terminator.grid(row=4, column=2, padx=10, pady=10)
+            
+
+            xml_export_encoding_label = tk.Label(xml_tab, text="Encoding:")
+            xml_export_encoding_label.grid(row=1, column=1, padx=10, pady=10)
+            self.xml_export_encoding = tk.Entry(xml_tab)
+            self.xml_export_encoding.insert(0, "UTF-8")
+            self.xml_export_encoding.grid(row=1, column=2, padx=10, pady=10)
+            
+            csv_export_button = tk.Button(csv_tab, text="Export", command=self.finalCSVExport)
+            csv_export_button.grid(row=5, column=1, padx=10, pady=10)
+            
+            xml_export_button = tk.Button(xml_tab, text="Export", command=self.finalXMLExport)
+            xml_export_button.grid(row=5, column=1, padx=10, pady=10)
+            
+            cancel_button = tk.Button(export_as_window, text="Cancel", command=export_as_window.destroy)
+            cancel_button.pack(side=tk.RIGHT, padx=10, pady=10)
+    
+    def finalCSVExport(self):
+        try:
+            super().finalCSVExportFunctionality(self.csv_export_encoding.get(), 
+                                                self.csv_export_delimiter.get(),
+                                                self.csv_export_quotechar.get(),
+                                                self.csv_export_line_terminator.get())
+        except LookupError as look_up_error:
+            showerror("Error!", look_up_error)
+            return
+        except ValueError:
+            showerror("Error!", "Delimiter, Quotechar and Line Terminator can only have 1-length chars each")
+            return
+        showinfo("Information", "The selected Files were exported as a CSV File")
+    
+    def finalXMLExport(self):
+        try:
+            super().finalXMLExportFunctionality(self.xml_export_encoding.get())
+        except LookupError as look_up_error:
+            showerror("Error!", look_up_error)
+            return
+        except ValueError as value_error:
+            showerror("Error!", value_error)
+            return
+        showinfo("Information", "The selected Files were exported as a XML File")
+        
+    
         
 
     def About(self):

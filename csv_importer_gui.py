@@ -9,7 +9,6 @@ import reader
 import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename, askopenfile
-from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
@@ -60,18 +59,7 @@ class model_interface():
 
 
         return self
-    
-    # def OpenFilesInterface(self, encoding, table, listbox):
-    #     try:
-    #         self.__csv_file = self.reader.OpenCSVFile(encoding)
-    #     #         table.redraw()
-                
-            
-    #     except OSError as e:
-    #         listbox.delete(self.__index-1)
-    #         showerror("Error!", e)
-                
-            
+                       
             
 
     def RemoveFilesInterface(self, listbox):
@@ -332,8 +320,7 @@ class model_interface():
                                                           dialect.quotechar,
                                                           dialect.skipinitialspace,
                                                           self.reader.opened_files_dict[filename]["lineTerminator"],
-                                                          dialect.quoting
-                                                          )
+                                                          dialect.quoting)
             return filename
         else:
             showerror("Error!", "File cannot be found in Listbox")
@@ -376,8 +363,6 @@ class model_interface():
         xsl_textbox.config(state="readonly") 
         
     def showXMLParameterFunctionality(self, listbox, parameter_listbox, filename):      
-        # selected_elem = listbox.curselection()
-        # filename = listbox.get(selected_elem)
         index = 0
         tmp_parameters_list = list(self.reader.opened_files_dict[filename])
         try:
@@ -387,8 +372,7 @@ class model_interface():
         except KeyError:
             return
         
-    def chooseXMLParameter(self, listbox, parameter_listbox, xml_parameters_textbox, filename):
-        
+    def chooseXMLParameter(self, listbox, parameter_listbox, xml_parameters_textbox, filename):      
         try:
             selected_elem = parameter_listbox.curselection()
         
@@ -448,6 +432,8 @@ class model_interface():
                 self.reader.importAsNumPyArray()
             except ValueError as value_error:
                 raise ValueError(value_error)
+        elif import_var_value == 4:
+            self.reader.importAsPandasDataframe()
             
     def finalCSVExportFunctionality(self, encoding, delimiter, quotechar, line_terminator):
         if len(str(delimiter)) <= 1 and len(str(quotechar)) <= 1 and len(str(line_terminator)) <= 1:
@@ -665,10 +651,6 @@ class view(model_interface):
         self.menu = tk.Menu(self.root)
         self.root.config(menu=self.menu)
 
-        # self.helpMenu = tk.Menu(self.menu)
-        # self.menu.add_cascade(label="Help", menu=self.helpMenu)
-        # self.helpMenu.add_command(label="About", command=self.About)
-
         self.button_addFile = tk.Button(
             file_buttons_frame, text="Add File/s", command=self.OpenFileGUI)
         self.button_addFile.pack(side=tk.TOP, padx=5, pady=5)
@@ -774,9 +756,7 @@ class view(model_interface):
         for elem in self.xml_parameters_list:
             elem.config(state="disabled")
 
-    def MergeFilesGUI(self):
-        pass
-        #super().MergeFilesInterface()
+
         
     def setFileEncoding(self, return_event):
         super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())  
@@ -978,6 +958,8 @@ class view(model_interface):
             list_of_lists_import_button.grid(row=2, column=1, padx=10, pady=10)
             numpy_array_import_button = tk.Radiobutton(import_as_window, text="Numpy Array", variable=self.import_var, value=3)
             numpy_array_import_button.grid(row=3, column=1, padx=10, pady=10)
+            pandas_dataframe_import_button = tk.Radiobutton(import_as_window, text="Pandas Dataframe", variable=self.import_var, value=4)
+            pandas_dataframe_import_button.grid(row=4, column=1, padx=10, pady=10)
             
             import_button = tk.Button(import_as_window, text="Import", command=self.finalImporter)
             import_button.grid(row=5, column=3, padx=10, pady=10)
@@ -997,6 +979,8 @@ class view(model_interface):
             showinfo("Information", "The selected Files were imported as a List of Lists")
         elif self.import_var.get() == 3:
             showinfo("Information", "The selected Files were imported as a Numpy Array")
+        elif self.import_var.get() == 4:
+            showinfo("Information", "The selected Files were imported as a Pandas Dataframe")
     
     def ExportAs(self):
         end_index = self.listbox.index("end")
@@ -1080,12 +1064,7 @@ class view(model_interface):
             showerror("Error!", value_error)
             return
         showinfo("Information", "The selected Files were exported as a XML File")
-        
-    
-        
 
-    def About(self):
-        print("This is a simple example of a menu")
 
 
 if __name__ == "__main__":

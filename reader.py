@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-#
 
-import tkinter as tk
 import pandas as pd
 import io
 import csv
 import re
-from tkinter import ttk 
-from pandastable import Table
-from tkinter.messagebox import showwarning, showinfo, showerror
-from tkinter.filedialog import askopenfilenames, asksaveasfilename
-from PyPDF2 import PdfFileWriter, PdfFileReader
 from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
@@ -24,10 +18,7 @@ class reader():
         self.opened_files_dict : dict = {}
         self.multiple_files_counter : int = 0
         self.main_dataframe = pd.DataFrame()
-        self.default_header : list = []
         self.column_amount : int = 0
-        self.__main_dataframe_has_header:bool = False
-        self.main_dataframe_has_default_header:bool = False
         self.importer = cxi.model()
 
         
@@ -202,6 +193,7 @@ class reader():
         self.opened_files_dict[filename]["hasHeader"] = None
         self.opened_files_dict[filename]["init"] = True
         self.update_dataframe()
+  
     
     def addXMLParameter(self, filename:str, param:str = None, value:str = None, wantHeader:bool = None):  
         if param is not None and value is not None:
@@ -218,11 +210,8 @@ class reader():
         if wantHeader is not None:
             self.opened_files_dict[filename]["hasHeader"] = wantHeader
         self.update_dataframe()
-            
 
-             
-        
-        
+    
     
     def OpenXMLFile(self, filename:str):
         if self.multiple_files_counter <= 1:
@@ -307,9 +296,7 @@ class reader():
                 
     def reset(self):
         self.main_dataframe = pd.DataFrame()
-        self.__main_dataframe_has_header = False
-        self.column_amount = 0
-        self.default_header = []            
+        self.column_amount = 0          
                
     
     def RemoveFilesFunctionality(self, elem_name:str):
@@ -341,6 +328,10 @@ class reader():
             return self.main_dataframe.to_numpy()
         except ValueError as value_error:
             raise ValueError(value_error)
+    
+    def importAsPandasDataframe(self):
+        print(self.main_dataframe)
+        return self.main_dataframe
 
     def exportAsCSVFile(self, exported_file_path: str, encoding: str = "UTF-8", delimiter: str = ",", quotechar:str ="\"", line_terminator:str = "\r\n"):
         self.main_dataframe.to_csv(exported_file_path, index=False, sep=delimiter, encoding=encoding, quotechar = quotechar, line_terminator = line_terminator)

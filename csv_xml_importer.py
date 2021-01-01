@@ -1,18 +1,10 @@
 # -*- coding: utf-8 -*-#
 
-import tkinter as tk
 import pandas as pd
 import io
 import csv
 import re
-from tkinter import ttk 
-from pandastable import Table
-from tkinter.messagebox import showwarning, showinfo, showerror
-from tkinter.filedialog import askopenfilenames, asksaveasfilename
-from PyPDF2 import PdfFileWriter, PdfFileReader
-from pathlib import Path
-from chardet import detect
-from math import log, ceil, floor 
+from math import log, ceil
 
 
 class model():

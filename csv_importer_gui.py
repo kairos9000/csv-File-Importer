@@ -6,7 +6,6 @@ import io
 from tkinter import ttk 
 from pandastable import Table, TableModel
 import reader
-import csv_xml_importer as cxi
 from tkinter.messagebox import showwarning, showinfo, showerror
 from tkinter.filedialog import askopenfilenames, asksaveasfilename, askopenfile
 from pathlib import Path
@@ -29,7 +28,7 @@ class model_interface():
     def getDataframe(self):
         self.main_dataframe = self.reader.giveDataframe()
 
-    def ShowFilesInterface(self, listbox):
+    def ShowFilesInterface(self, listbox:tk.Listbox):
         try:
            
             self.__names = askopenfilenames()
@@ -62,7 +61,7 @@ class model_interface():
                        
             
 
-    def RemoveFilesInterface(self, listbox):
+    def RemoveFilesInterface(self, listbox:tk.Listbox):
         selected_elem = listbox.curselection()
         if selected_elem == ():
             return
@@ -77,13 +76,13 @@ class model_interface():
             self.__index = 0
         return self
 
-    def ClearAllFilesInterface(self, listbox):
+    def ClearAllFilesInterface(self, listbox:tk.Listbox):
         listbox.delete(0, self.__index)
         self.reader.ClearAllFilesFunctionality()
         self.__index = 0
         return self
 
-    def setUserEncoding(self, listbox, encoding_textbox, wanted_encoding):        
+    def setUserEncoding(self, listbox:tk.Listbox, encoding_textbox:tk.Entry, wanted_encoding:str):        
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         
@@ -99,12 +98,12 @@ class model_interface():
         except ValueError as value_error:
             showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
     
-    def updateEncodingTextbox(self, encodings_textbox, selected_file):
+    def updateEncodingTextbox(self, encodings_textbox:tk.Entry, selected_file:str):
         encodings_textbox.delete(0, tk.END)
         if selected_file is not None:
             encodings_textbox.insert(0, self.reader.opened_files_dict[selected_file]["Encoding"])
     
-    def setUserDelimiter(self, listbox, delimiter_textbox, wanted_delimiter):
+    def setUserDelimiter(self, listbox:tk.Listbox, delimiter_textbox:tk.Entry, wanted_delimiter:str):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         if len(str(wanted_delimiter)) > 1:
@@ -131,7 +130,7 @@ class model_interface():
             showerror("Error!", "Cannot set Delimiter "+ wanted_delimiter+" for "+filename+", because the number of columns would be different")
             return
             
-    def setDelimiterForAllFunctionality(self, listbox, delimiter_textbox, wanted_delimiter):
+    def setDelimiterForAllFunctionality(self, listbox:tk.Listbox, delimiter_textbox:tk.Entry, wanted_delimiter:str):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         if len(str(wanted_delimiter)) > 1:
@@ -145,13 +144,13 @@ class model_interface():
         
         
     
-    def updateDelimiterTextbox(self, delimiter_textbox, selected_file):
+    def updateDelimiterTextbox(self, delimiter_textbox:tk.Entry, selected_file:str):
         delimiter_textbox.delete(0, tk.END)
         if selected_file is not None:
             delimiter_textbox.insert(0, self.reader.opened_files_dict[selected_file]["Delimiter"])
     
     
-    def setUserQuotechar(self, listbox, quotechar_textbox, wanted_quotechar):
+    def setUserQuotechar(self, listbox:tk.Listbox, quotechar_textbox:tk.Entry, wanted_quotechar:str):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         
@@ -179,12 +178,12 @@ class model_interface():
             showerror("Error!", type_error)
             return
         
-    def updateQuotecharTextbox(self, quotechar_textbox, selected_file):
+    def updateQuotecharTextbox(self, quotechar_textbox:tk.Entry, selected_file:str):
         quotechar_textbox.delete(0, tk.END)
         if selected_file is not None:
             quotechar_textbox.insert(0, self.reader.opened_files_dict[selected_file]["QuoteChar"])
         
-    def setUserHeader(self, listbox, header_checkbox_value):
+    def setUserHeader(self, listbox:tk.Listbox, header_checkbox_value):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         want_header = bool(header_checkbox_value.get())
@@ -200,14 +199,14 @@ class model_interface():
     
         
             
-    def updateHeaderCheckbox(self, header_checkbox_value, selected_file):
+    def updateHeaderCheckbox(self, header_checkbox_value:tk.IntVar, selected_file:str):
         header_checkbox_value.set(0)
         if selected_file is not None:
             selected_file_header = int(self.reader.opened_files_dict[selected_file]["hasHeader"])
             header_checkbox_value.set(selected_file_header)
     
             
-    def setUserSkipSpaces(self, listbox, skip_spaces_checkbox_value):
+    def setUserSkipSpaces(self, listbox:tk.Listbox, skip_spaces_checkbox_value:tk.IntVar):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         want_skip_spaces = bool(skip_spaces_checkbox_value.get())
@@ -223,13 +222,13 @@ class model_interface():
     
         
             
-    def updateSkipSpacesCheckbox(self, skip_spaces_checkbox_value, selected_file):
+    def updateSkipSpacesCheckbox(self, skip_spaces_checkbox_value:tk.IntVar, selected_file:str):
         skip_spaces_checkbox_value.set(0)
         if selected_file is not None:
             selected_file_skip_spaces = int(self.reader.opened_files_dict[selected_file]["skipInitSpace"])
             skip_spaces_checkbox_value.set(selected_file_skip_spaces)
             
-    def setUserLineTerminator(self, listbox, line_terminator_textbox, wanted_line_terminator):
+    def setUserLineTerminator(self, listbox:tk.Listbox, line_terminator_textbox:tk.Entry, wanted_line_terminator:str):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         if len(str(wanted_line_terminator)) > 1:
@@ -266,7 +265,7 @@ class model_interface():
         
 
         
-    def updateLineTerminatorTextbox(self, line_terminator_textbox, selected_file):
+    def updateLineTerminatorTextbox(self, line_terminator_textbox:tk.Entry, selected_file:str):
         line_terminator_textbox.delete(0, tk.END)
         if selected_file is not None:
             if self.reader.opened_files_dict[selected_file]["lineTerminator"] == None:
@@ -274,7 +273,7 @@ class model_interface():
             else:
                 line_terminator_textbox.insert(0, ""+self.reader.opened_files_dict[selected_file]["lineTerminator"])
                 
-    def setUserQuoting(self, listbox, quoting_var):
+    def setUserQuoting(self, listbox:tk.Listbox, quoting_var:tk.IntVar):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         quoting = quoting_var.get()
@@ -291,13 +290,13 @@ class model_interface():
         
         return filename
     
-    def updateQuotingRadioButtons(self, quoting_var, selected_file):
+    def updateQuotingRadioButtons(self, quoting_var:tk.IntVar, selected_file:str):
         quoting_var.set(0)
         if selected_file is not None:
             selected_file_quoting = self.reader.opened_files_dict[selected_file]["Quoting"]
             quoting_var.set(selected_file_quoting)
             
-    def csvReset(self, listbox):
+    def csvReset(self, listbox:tk.Listbox):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         if filename in self.reader.opened_files_dict.keys():
@@ -327,7 +326,7 @@ class model_interface():
             return
             
         
-    def getXSLFile(self, listbox, xsl_textbox, parameter_listbox):
+    def getXSLFile(self, listbox:tk.Listbox, xsl_textbox:tk.Entry, parameter_listbox:tk.Listbox):
         if len(listbox.curselection()) == 0:
             showerror("Error!", "No XML-File selected to set Stylesheet for. Please select XML-File in Listbox")
             return False
@@ -351,7 +350,7 @@ class model_interface():
             showwarning("Warning!", "Only XSL-Files are allowed") 
             return False
     
-    def updateXSLFileTextbox(self, xsl_textbox, selected_file):
+    def updateXSLFileTextbox(self, xsl_textbox:tk.Entry, selected_file:str):
         xsl_textbox.config(state="normal")
         xsl_textbox.delete(0, tk.END)
         try:
@@ -362,7 +361,7 @@ class model_interface():
             return
         xsl_textbox.config(state="readonly") 
         
-    def showXMLParameterFunctionality(self, listbox, parameter_listbox, filename):      
+    def showXMLParameterFunctionality(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, filename:str):      
         index = 0
         tmp_parameters_list = list(self.reader.opened_files_dict[filename])
         try:
@@ -372,7 +371,7 @@ class model_interface():
         except KeyError:
             return
         
-    def chooseXMLParameter(self, listbox, parameter_listbox, xml_parameters_textbox, filename):      
+    def chooseXMLParameter(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, xml_parameters_textbox:tk.Entry, filename:str):      
         try:
             selected_elem = parameter_listbox.curselection()
         
@@ -384,7 +383,7 @@ class model_interface():
         xml_parameters_textbox.delete(0, tk.END)   
         xml_parameters_textbox.insert(0, self.reader.opened_files_dict[filename][parameter][1:-1])
     
-    def changeXMLParameter(self, listbox, parameter_listbox, parameters_textbox, filename):
+    def changeXMLParameter(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, parameters_textbox:tk.Entry, filename:str):
         try:
             selected_elem = parameter_listbox.curselection()
         
@@ -399,7 +398,7 @@ class model_interface():
                 self.reader.getXMLParameters(filename, self.reader.opened_files_dict[filename]["xsl_file"]) 
                 showerror("Error!", value_error)
     
-    def setXMLUserHeader(self, listbox, xml_header_var):
+    def setXMLUserHeader(self, listbox:tk.Listbox, xml_header_var:tk.IntVar):
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         want_header = bool(xml_header_var.get())
@@ -408,7 +407,7 @@ class model_interface():
         self.updateXMLUserHeader(xml_header_var, listbox) 
         return filename
     
-    def updateXMLUserHeader(self, xml_header_var, listbox):
+    def updateXMLUserHeader(self, xml_header_var:tk.IntVar, listbox:tk.Listbox):
         selected_elem = listbox.curselection()
         selected_file = listbox.get(selected_elem)
         xml_header_var.set(0)
@@ -416,13 +415,13 @@ class model_interface():
             selected_file_header = int(self.reader.opened_files_dict[selected_file]["hasHeader"])
             xml_header_var.set(selected_file_header)
     
-    def xmlResetFunctionality(self, listbox):
+    def xmlResetFunctionality(self, listbox:tk.Listbox):
         selected_elem = listbox.curselection()
         selected_file = listbox.get(selected_elem)
         self.reader.getXMLParameters(selected_file, self.reader.opened_files_dict[selected_file]["xsl_file"])
         return selected_file
     
-    def finalImporterFunctionality(self, import_var_value):
+    def finalImporterFunctionality(self, import_var_value:tk.IntVar):
         if import_var_value == 1:
             self.reader.importAsDictionary()
         elif import_var_value ==2:
@@ -435,7 +434,7 @@ class model_interface():
         elif import_var_value == 4:
             self.reader.importAsPandasDataframe()
             
-    def finalCSVExportFunctionality(self, encoding, delimiter, quotechar, line_terminator):
+    def finalCSVExportFunctionality(self, encoding:str, delimiter:str, quotechar:str, line_terminator:str):
         if len(str(delimiter)) <= 1 and len(str(quotechar)) <= 1 and len(str(line_terminator)) <= 1:
             if len(str(delimiter)) == 0:
                 delimiter = ","
@@ -453,7 +452,7 @@ class model_interface():
         else:
             raise ValueError
             
-    def finalXMLExportFunctionality(self, encoding):
+    def finalXMLExportFunctionality(self, encoding:str):
         dest_filepath = asksaveasfilename(defaultextension=".xml",
             filetypes=[("XML file", "*.xml")],
             initialfile="export.xml")
@@ -478,7 +477,7 @@ class view(model_interface):
         self.Importer_Labelframe = tk.LabelFrame(self.root, text="Importer")
         self.Importer_Labelframe.grid(row=1, column=1, padx=10, pady=10)
         
-        self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Konfigurator")
+        self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Configurator")
         self.Konfigurator_Labelframe.grid(row=3, column=1, padx=10, pady=10)
         
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
@@ -496,7 +495,7 @@ class view(model_interface):
         listbox_frame.pack(side=tk.TOP)
         self.grid_frame = tk.Frame(self.Konfigurator_Labelframe)
         self.grid_frame.pack(side=tk.BOTTOM)
-        self.csv_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="CSV-Konfigurator", fg="gray")
+        self.csv_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="CSV-Configurator", fg="gray")
         self.csv_konfigurator_frame.pack(side=tk.LEFT, padx=10, pady=10)
         self.csv_parameters_labels.append(self.csv_konfigurator_frame)
         
@@ -588,7 +587,7 @@ class view(model_interface):
         
         
         
-        self.xml_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="XML-Konfigurator", fg="gray")
+        self.xml_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="XML-Configurator", fg="gray")
         self.xml_konfigurator_frame.pack(side=tk.RIGHT, padx=10, pady=10)
         self.xml_parameters_labels.append(self.xml_konfigurator_frame)
         

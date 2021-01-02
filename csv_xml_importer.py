@@ -7,7 +7,7 @@ import re
 from math import log, ceil
 
 
-class model():
+class dataframeAndHeaderHandler():
     """This class is responsible for adding the new Dataframes to the Main Dataframe and 
     finding the corresponding headers of the columns of the Main Dataframe through regular expressions"""
 
@@ -136,7 +136,7 @@ class model():
         self.column_amount = 0
         self.default_header = []
     
-    def find_header_formats(self, dataframe):
+    def find_header_formats(self, dataframe:pd.DataFrame):
         """Takes a dataframe and checks the first five rows with regular expressions on their types
         
         Parameter:
@@ -187,12 +187,12 @@ class model():
         return key_list
     
     
-    def regex_list_filler(self, regex_list, row):
+    def regex_list_filler(self, regex_list:list, row:list):
         """Tests every element of the row on their type
         
         Parameters:
             regex_list: the list, which will contain the types of the rows
-            row: the row of the dataframe whose entries will be tested on regular expressions
+            row: the row of the dataframe whose entries will be tested on regular expressions as a list
         
         Returns:
             regex_list: the filled list, with the types of the entries of the row"""
@@ -209,11 +209,11 @@ class model():
         
         return regex_list
     
-    def regex_tester(self, elem):
+    def regex_tester(self, elem:str):
         """This Function tests every element on the regular expressions contained in types_dict
         
         Parameters:
-            elem: the Element to be tested on every regular expression
+            elem: the Element to be tested on every regular expression as a string
         
         Returns:
             key or "String": a string, which indicates the type of elem"""

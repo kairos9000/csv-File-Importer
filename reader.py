@@ -300,14 +300,14 @@ class reader():
         tree = ET.parse(xsl_file)
         root = tree.getroot()
         #searches every Tag of the Stylesheet for the keyword "param", which specifies parameters
-        param_matches = [c.attrib for c in root if 'param' in c.tag]
+        parameters = [elem.attrib for elem in root if 'param' in elem.tag]
         #adds every parameter to the parameter dictionary, which is the value of the filename in opened_files_dict
-        for index,_ in enumerate(param_matches):
-            self.opened_files_dict[filename][param_matches[index]["name"]] = param_matches[index]["select"]
+        for index,_ in enumerate(parameters):
+            self.opened_files_dict[filename][parameters[index]["name"]] = parameters[index]["select"]
         #sets the xsl_file as another key for later use
         self.opened_files_dict[filename]["xsl_file"] = xsl_file
         #gets the amount of parameters the xsl Stylesheet has
-        self.opened_files_dict[filename]["parameters_len"] = len(param_matches)
+        self.opened_files_dict[filename]["parameters_len"] = len(parameters)
         #hasHeader will be used later when opening the file
         self.opened_files_dict[filename]["hasHeader"] = None
         #init will be used when openend the file

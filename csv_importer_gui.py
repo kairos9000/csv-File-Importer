@@ -13,33 +13,62 @@ from chardet import detect
 from math import log, ceil, floor 
 #TODO: Kommentare und Dokumentation schreiben
 
-class model_interface():
-    """This class provides the functionality of the project according to the 
-    model-view-separation principle"""
+class reader_and_gui_interface():
+    """This class acts as an interface between instances of the class reader
+    and instances of the class gui, to separate these two classes, so that 
+    reader can be operated as an API and the class gui just takes the methods of reader
+    and realises them in a gui"""
 
     def __init__(self):
+        """The constructor of the class reader_and_gui_interface.
+        If defines the following attributes for every instance of the class:
+        
+            reader: a instance of the class reader, to have the methods and attributes of reader available for the gui
+            index: an integer, which counts the Elements of the main Listbox in the gui, where the filenames are stored
+            main_dataframe: the main dataframe, to which all opened files are appended to, if they are compatible
+            wanted_delimiter_all_files: a string, which is the delimiter for all files if the user wants to, to set all delimiters
+                                        for all files at the same time, without running into the issue that the column amount of one file is different to another"""
         self.reader = reader.reader()
         self.__index:int = 0
         self.main_dataframe = pd.DataFrame()
-        self.selected_listbox_elem:int = -1
         self.wanted_delimiter_all_files:str = None
         
     
     def getDataframe(self):
+        """A simple function, which gets main_dataframe from the reader object and puts it in main_dataframe 
+        of this object, to update pandastable
+        
+        Returns:
+            nothing or void"""
+        
         self.main_dataframe = self.reader.giveDataframe()
 
     def ShowFilesInterface(self, listbox:tk.Listbox):
-        try:
-           
+        """ShowFilesInterface asks the user to select the file or files he wants to see,
+        opens them with the method read_with_init_settings of the reader object, but only if they are
+        csv or xml files, and inserts them in the listbox for files in the gui
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+
+        Returns:
+            nothing or void"""
+        
+        try:  
             self.__names = askopenfilenames()
             for filename in self.__names:
                 try:
+                    #tests if the file is a csv or xml file
                     if filename.endswith(".csv") or filename.endswith(".xml"):
+                        #opens each file with its sniffed parameters
+                        #for xml files a additional xsl Stylesheet has to be chosen later
                         self.reader.read_with_init_settings(filename)
                     else:
                         showwarning("Warning!", "Only CSV or XML Files are allowed!")
                         continue
                 except ValueError as value_error:
+                    #deletes files which cannot be opened and read from opened_files_dict
                     if filename in self.reader.opened_files_dict.keys():
                         self.reader.opened_files_dict.pop(filename)
                     showerror("Error!", value_error)
@@ -47,63 +76,121 @@ class model_interface():
             
             listbox.delete(0, tk.END)
             self.__index = 0
+            #inserts each filename in the listbox with its corresponding index
             for name in self.reader.opened_files_dict.keys():        
                 listbox.insert(self.__index, name)
                 self.__index += 1 
+            #gives each entry of the listbox a selection event, to select the file and change its parameters later
             listbox.select_set(self.__index-1)
-            self.selected_listbox_elem = self.__index - 1
             listbox.event_generate("<<ListboxSelect>>")  
         except OSError:
             showerror("Error!", "File could not be opened!")
-
-
-        return self
                        
             
 
     def RemoveFilesInterface(self, listbox:tk.Listbox):
+        """Removes Files from the main listbox and from the opened_files_dict dictionary
+        
+        Parameters: 
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+        
+        Returns:
+            nothing or void"""
+        
+        #gets the index of the selected element of the listbox
         selected_elem = listbox.curselection()
         if selected_elem == ():
             return
+        #gets the name of the selected element
         elem_name = listbox.get(selected_elem)
-        if elem_name in self.reader.opened_files_dict:           
+        if elem_name in self.reader.opened_files_dict:   
+            #removes file from listbox and dictionary        
             self.reader.RemoveFilesFunctionality(elem_name)
             listbox.delete(selected_elem)
         else:
             showerror("Error!", "Selected File is not in the List")
 
+        #if the dictionary gets empty while removing files the listbox index will be reset
         if len(self.reader.opened_files_dict) == 0:
             self.__index = 0
-        return self
 
     def ClearAllFilesInterface(self, listbox:tk.Listbox):
+        """Clears the whole listbox and opened_files_dict of entries
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+        
+        Returns:
+            nothing or void"""
+            
         listbox.delete(0, self.__index)
         self.reader.ClearAllFilesFunctionality()
         self.__index = 0
-        return self
 
-    def setUserEncoding(self, listbox:tk.Listbox, encoding_textbox:tk.Entry, wanted_encoding:str):        
+    def setUserEncoding(self, listbox:tk.Listbox, encoding_textbox:tk.Entry, wanted_encoding:str):       
+        """This Function takes the string, the user typed in the textbox for encoding for this file and 
+        tries to set the encoding of the file to this string.
+        If its not a valid encoding, the default sniffed encoding of the file will be used
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            encoding_textbox: a Entry widget from tkinter, in which the user can type in the wanted encoding
+            wanted_encoding: the string the user typed into encoding_textbox
+        
+        Returns:
+            filename: the selected filename from the listbox"""
+            
+        #gets selected element of the listbox 
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         
         try:
+            #updates the csv file with the wanted encoding
             self.reader.update_csv_with_personal_settings(filename,
                                             None,
                                             wanted_encoding)
-            self.updateEncodingTextbox(encoding_textbox, filename) 
             return filename
+        #if the encoding is not valid for this file
         except LookupError:
+            #updates the encoding textbox, to show the default encoding sniffed from the file
             self.updateEncodingTextbox(encoding_textbox, filename)
             showerror("Error!", "Cannot encode "+filename+" with encoding: "+wanted_encoding)
+        #if the file cannot be parsed or another error occurs
         except ValueError as value_error:
             showerror("Error!", "For "+filename+" the following encoding error occured: "+value_error)
     
     def updateEncodingTextbox(self, encodings_textbox:tk.Entry, selected_file:str):
+        """updates the textbox for encoding, so that it shows the encoding used to decode the file
+        
+        Parameters:
+            encodings_textbox: a Entry widget from tkinter, in which the user can type in the wanted encoding
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+            
+        #empties textbox
         encodings_textbox.delete(0, tk.END)
         if selected_file is not None:
+            #overwrites contents of the textbox with the encoding used for selected_file
             encodings_textbox.insert(0, self.reader.opened_files_dict[selected_file]["Encoding"])
     
     def setUserDelimiter(self, listbox:tk.Listbox, delimiter_textbox:tk.Entry, wanted_delimiter:str):
+        """Sets the delimiter or separator of the file selected in the listbox to the string the user typed into the textbox for
+        the delimiter
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            delimiter_textbox: a Entry widget for the user to typed in the wanted delimiter
+            wanted_delimiter: the string the user typed into delimiter_textbox, which will be used as a delimiter
+        
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         if len(str(wanted_delimiter)) > 1:
@@ -465,22 +552,24 @@ class model_interface():
     
 
 
-class view(model_interface):
+class gui(reader_and_gui_interface):
     """This class is responsible for the GUI"""
 
     def __init__(self):
 
         self.root = tk.Tk()
         self.root.minsize(1000, 300)
+        self.root.title("CSV_XML_Importer")
+        self.root.config(bg="gray16")
         super().__init__()
         
-        self.Importer_Labelframe = tk.LabelFrame(self.root, text="Importer")
+        self.Importer_Labelframe = tk.LabelFrame(self.root, text="Importer", bg="gray24", fg="white")
         self.Importer_Labelframe.grid(row=1, column=1, padx=10, pady=10)
         
-        self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Configurator")
+        self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Configurator", bg="gray24", fg="white")
         self.Konfigurator_Labelframe.grid(row=3, column=1, padx=10, pady=10)
         
-        self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview")
+        self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview", bg="gray24", fg="white")
         self.preview_table_Labelframe.grid(row=3, column=2, padx=10, pady=10)
        
         self.csv_parameters_list:list = []
@@ -489,11 +578,11 @@ class view(model_interface):
         self.xml_parameters_labels:list = []
         self.filename:str = ""
         
-        file_buttons_frame = tk.Frame(self.Importer_Labelframe)
+        file_buttons_frame = tk.Frame(self.Importer_Labelframe, bg="gray24")
         file_buttons_frame.pack(side=tk.LEFT)
-        listbox_frame = tk.Frame(self.Importer_Labelframe)
+        listbox_frame = tk.Frame(self.Importer_Labelframe, bg="gray24")
         listbox_frame.pack(side=tk.TOP)
-        self.grid_frame = tk.Frame(self.Konfigurator_Labelframe)
+        self.grid_frame = tk.Frame(self.Konfigurator_Labelframe, bg="gray24")
         self.grid_frame.pack(side=tk.BOTTOM)
         self.csv_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="CSV-Configurator", fg="gray")
         self.csv_konfigurator_frame.pack(side=tk.LEFT, padx=10, pady=10)
@@ -663,7 +752,7 @@ class view(model_interface):
         self.preview_table = Table(self.preview_table_Labelframe, dataframe=self.main_dataframe)
         self.preview_table.show()
 
-        self.import_export_buttons_frame = tk.Frame(self.root)
+        self.import_export_buttons_frame = tk.Frame(self.root, bg="gray16")
         self.import_export_buttons_frame.grid(row=4, column=2)
         
         self.button_importCSV = tk.Button(
@@ -1067,4 +1156,4 @@ class view(model_interface):
 
 
 if __name__ == "__main__":
-    app = view()
+    app = gui()

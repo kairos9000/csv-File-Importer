@@ -25,13 +25,12 @@ class reader_and_gui_interface():
         
             reader: a instance of the class reader, to have the methods and attributes of reader available for the gui
             index: an integer, which counts the Elements of the main Listbox in the gui, where the filenames are stored
-            main_dataframe: the main dataframe, to which all opened files are appended to, if they are compatible
-            wanted_delimiter_all_files: a string, which is the delimiter for all files if the user wants to, to set all delimiters
-                                        for all files at the same time, without running into the issue that the column amount of one file is different to another"""
+            main_dataframe: the main dataframe, to which all opened files are appended to, if they are compatible"""
+            
         self.reader = reader.reader()
         self.__index:int = 0
         self.main_dataframe = pd.DataFrame()
-        self.wanted_delimiter_all_files:str = None
+
         
     
     def getDataframe(self):
@@ -185,7 +184,7 @@ class reader_and_gui_interface():
         Parameters:
             listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
                     they have been selected
-            delimiter_textbox: a Entry widget for the user to typed in the wanted delimiter
+            delimiter_textbox: a Entry widget for the user to type in the wanted delimiter
             wanted_delimiter: the string the user typed into delimiter_textbox, which will be used as a delimiter
         
         Returns:
@@ -193,11 +192,13 @@ class reader_and_gui_interface():
             
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        #length-2-Delimiters are invalid
         if len(str(wanted_delimiter)) > 1:
             showerror("Error!", "Delimiter has to have a length of 1")
             self.updateDelimiterTextbox(delimiter_textbox, filename)
             return
         try:
+            #updates the dataframe with the new delimiter
             self.reader.update_csv_with_personal_settings(filename,
                                             None,
                                             None,
@@ -205,39 +206,45 @@ class reader_and_gui_interface():
             self.updateDelimiterTextbox(delimiter_textbox, filename) 
             return filename
         
+        #if a ValueError occurs the default Delimiter, which has been sniffed from the file will be set again and a Error Message pops up
         except ValueError:
-            if self.wanted_delimiter_all_files == None:
-                _,origin_dialect = self.reader.csvSniffer(filename)
-                origin_delimiter = origin_dialect.delimiter
-            else:
-                origin_delimiter = self.wanted_delimiter_all_files
+            _,origin_dialect = self.reader.csvSniffer(filename)
+            origin_delimiter = origin_dialect.delimiter
             self.reader.opened_files_dict[filename]["Delimiter"] = origin_delimiter
             self.updateDelimiterTextbox(delimiter_textbox, filename)
             self.reader.update_dataframe()
-            showerror("Error!", "Cannot set Delimiter "+ wanted_delimiter+" for "+filename+", because the number of columns would be different")
-            return
-            
-    def setDelimiterForAllFunctionality(self, listbox:tk.Listbox, delimiter_textbox:tk.Entry, wanted_delimiter:str):
-        selected_elem = listbox.curselection()
-        filename = listbox.get(selected_elem)
-        if len(str(wanted_delimiter)) > 1:
-            showerror("Error!", "Delimiter has to have a length of 1")
-            self.updateDelimiterTextbox(delimiter_textbox, filename)
-            return
-        self.wanted_delimiter_all_files = wanted_delimiter
-        for filename in self.reader.opened_files_dict:
-            self.reader.opened_files_dict[filename]["Delimiter"] = wanted_delimiter
-        self.reader.update_dataframe()
-        
+            showerror("Error!", wanted_delimiter+" is a invalid Delimiter for "+filename)
+            return      
         
     
     def updateDelimiterTextbox(self, delimiter_textbox:tk.Entry, selected_file:str):
+        """Updates the Textbox the Delimiter is placed in, to show the user which Delimiter is currently used
+        
+        Parameters:
+            delimiter_textbox: a Entry widget for the user to type in the wanted delimiter
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+        
         delimiter_textbox.delete(0, tk.END)
         if selected_file is not None:
             delimiter_textbox.insert(0, self.reader.opened_files_dict[selected_file]["Delimiter"])
     
     
     def setUserQuotechar(self, listbox:tk.Listbox, quotechar_textbox:tk.Entry, wanted_quotechar:str):
+        """Sets the character, which will be used for the quoting of the file selected in the listbox
+        to the string the user typed into the textbox for the quotchar
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            quotechar_textbox: a Entry widget for the user to type in the wanted quotechar
+            wanted_quotechar: the character the user typed into quotechar_textbox, which will be used as the quotechar
+        
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         
@@ -250,6 +257,8 @@ class reader_and_gui_interface():
             self.updateQuotecharTextbox(quotechar_textbox, filename) 
             return filename
         
+        #Error Handling
+        #sets the quotechar back to the default sniffed value if the quotechar is invalid
         except ValueError:
             _,origin_dialect = self.reader.csvSniffer(filename)
             self.reader.opened_files_dict[filename]["QuoteChar"] = origin_dialect.quotechar
@@ -257,6 +266,7 @@ class reader_and_gui_interface():
             self.reader.update_dataframe()
             showerror("Error!", wanted_quotechar+" is not a valid Quotechar for"+filename)
             return
+        #sets the quotechar back to the default sniffed value if another error occurs
         except TypeError as type_error:
             _,origin_dialect = self.reader.csvSniffer(filename)
             self.reader.opened_files_dict[filename]["QuoteChar"] = origin_dialect.quotechar
@@ -266,34 +276,78 @@ class reader_and_gui_interface():
             return
         
     def updateQuotecharTextbox(self, quotechar_textbox:tk.Entry, selected_file:str):
+        """Updates the Textbox the character for the quoting of the file is placed in,
+        to show the user which character is currently used
+        
+        Parameters:
+            quotechar_textbox: a Entry widget for the user to type in the wanted quotechar
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+            
         quotechar_textbox.delete(0, tk.END)
         if selected_file is not None:
             quotechar_textbox.insert(0, self.reader.opened_files_dict[selected_file]["QuoteChar"])
         
     def setUserHeader(self, listbox:tk.Listbox, header_checkbox_value):
+        """Takes the boolean value of the checkbox for the header and sets the Header of the file accordingly
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            header_checkbox_value: the boolean value of the header checkbox
+            
+        Returns:
+            filename: the selected file from the main listbox"""
+         
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        #the value has to be converted to bool, because the variable, which tracks the status of the checkbox can only
+        #be set to 0 or 1
         want_header = bool(header_checkbox_value.get())
         try:
             self.reader.update_csv_with_personal_settings(filename,
-                                            want_header,
-                                            )
+                                                        want_header)
+        #if a header cannot be set
         except ValueError as value_error:
             showerror("Error!", value_error)
             return
+        
         self.updateHeaderCheckbox(header_checkbox_value, filename) 
         return filename
     
         
             
     def updateHeaderCheckbox(self, header_checkbox_value:tk.IntVar, selected_file:str):
+        """updates the checkbox in the gui to show if the header is set or not
+        
+        Parameters:
+            header_checkbox_value: the value of the checkbox for the header
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+            
         header_checkbox_value.set(0)
         if selected_file is not None:
+            #needs to be converted to int, because the checkbox only takes 0 or 1
             selected_file_header = int(self.reader.opened_files_dict[selected_file]["hasHeader"])
             header_checkbox_value.set(selected_file_header)
     
             
     def setUserSkipSpaces(self, listbox:tk.Listbox, skip_spaces_checkbox_value:tk.IntVar):
+        """Takes the boolean value of the skip_spaces_checkbox and skips the spaces at the beginning of a entry of the dataframe
+        if there are any
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            skip_spaces_checkbox_value: the boolean value of the skip_spaces_checkbox
+            
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         want_skip_spaces = bool(skip_spaces_checkbox_value.get())
@@ -310,19 +364,42 @@ class reader_and_gui_interface():
         
             
     def updateSkipSpacesCheckbox(self, skip_spaces_checkbox_value:tk.IntVar, selected_file:str):
+        """updates the checkbox in the gui to show if skip_spaces is set or not
+        
+        Parameters:
+            skip_spaces_checkbox_value: the boolean value of the skip_spaces_checkbox
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+            
         skip_spaces_checkbox_value.set(0)
         if selected_file is not None:
             selected_file_skip_spaces = int(self.reader.opened_files_dict[selected_file]["skipInitSpace"])
             skip_spaces_checkbox_value.set(selected_file_skip_spaces)
             
     def setUserLineTerminator(self, listbox:tk.Listbox, line_terminator_textbox:tk.Entry, wanted_line_terminator:str):
+        """Sets the character, which will be used for the end of a line of the file selected in the listbox
+        to the string the user typed into the textbox for the Line Terminator
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            line_terminator_textbox: a Entry widget for the user to type in the wanted Line Terminator
+            wanted_line_terminator: the character the user typed into line_terminator_textbox, which will be used as the Line Terminator
+        
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        #only length-1-line terminators are valid
         if len(str(wanted_line_terminator)) > 1:
             showerror("Error!", "Only length-1 line Terminators are supported")
             self.updateLineTerminatorTextbox(line_terminator_textbox, filename)
             return
         try:
+            #updates the dataframe with the wanted Line Terminator
             self.reader.update_csv_with_personal_settings(filename,
                                             None,
                                             None,
@@ -332,8 +409,12 @@ class reader_and_gui_interface():
                                             wanted_line_terminator)
             self.updateLineTerminatorTextbox(line_terminator_textbox, filename) 
             return filename
+        
+        #Error Handling
+        #Parse Error: if the Line Terminator character can't be parsed
         except pd.errors.ParserError as parser_error:
             showerror("Error!", parser_error)
+        #if a ValueError occurs, the default sniffed Line Terminator from the file will be used again
         except ValueError:
             _,origin_dialect = self.reader.csvSniffer(filename)
             self.reader.opened_files_dict[filename]["lineTerminator"] = origin_dialect.lineterminator
@@ -341,6 +422,7 @@ class reader_and_gui_interface():
             self.reader.update_dataframe()
             showerror("Error!", wanted_line_terminator+" is not a valid Line Terminator for"+filename)
             return
+        #the same as with a ValueError
         except TypeError as type_error:
             _,origin_dialect = self.reader.csvSniffer(filename)
             self.reader.opened_files_dict[filename]["lineTerminator"] = origin_dialect.lineterminator
@@ -350,19 +432,45 @@ class reader_and_gui_interface():
             return 
         
         
-
-        
     def updateLineTerminatorTextbox(self, line_terminator_textbox:tk.Entry, selected_file:str):
+        """Updates the Textbox the character for the Line Terminator of the file is placed in,
+        to show the user which character is currently used
+        
+        Parameters:
+            line_terminator_textbox: a Entry widget for the user to type in the wanted Line Terminator
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+            
         line_terminator_textbox.delete(0, tk.END)
         if selected_file is not None:
+            #if no Line Terminator is given, nothing will be written into the textbox
             if self.reader.opened_files_dict[selected_file]["lineTerminator"] == None:
                 return
             else:
                 line_terminator_textbox.insert(0, ""+self.reader.opened_files_dict[selected_file]["lineTerminator"])
                 
+                
     def setUserQuoting(self, listbox:tk.Listbox, quoting_var:tk.IntVar):
+        """Sets the quoting style of the File according to the selected radio Button in the gui.
+        There are four different quoting styles to choose:
+        0: Minimal quoting
+        1: Everything will be quoted
+        2: All non numeric fields of the dataframe will be quoted
+        3: nothing will be quoted
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            quoting_var: the integer variable, which has one of the four above mentioned values to set the quoting style
+        
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        #gets the integer value to set the quoting
         quoting = quoting_var.get()
         self.reader.update_csv_with_personal_settings(filename,
                                                     None,
@@ -378,15 +486,36 @@ class reader_and_gui_interface():
         return filename
     
     def updateQuotingRadioButtons(self, quoting_var:tk.IntVar, selected_file:str):
+        """updates the variable for the quoting style, so the right radio button is selected in the gui
+        
+        Parameters:
+            quoting_var: the integer variable, which has one of the four above mentioned values to set the quoting style
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+        
         quoting_var.set(0)
         if selected_file is not None:
             selected_file_quoting = self.reader.opened_files_dict[selected_file]["Quoting"]
+            #sets the variable to the value of the quoting, to select the according radio button
             quoting_var.set(selected_file_quoting)
             
+            
     def csvReset(self, listbox:tk.Listbox):
+        """Resets the selected csv File to have its default values for its Parameters again through sniffing from the file
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+        
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
         if filename in self.reader.opened_files_dict.keys():
+            #sniffs dialect and header from file again
             sniffHeader, dialect = self.reader.csvSniffer(filename)
             if self.reader.multiple_files_counter <= 1:
                 endswith_slice = -2
@@ -397,8 +526,10 @@ class reader_and_gui_interface():
                 tmp_filename = filename[:endswith_slice:]
             else:
                 tmp_filename = filename
+            #sniffs encoding
             enc = detect(Path(tmp_filename).read_bytes())
             self.reader.opened_files_dict[filename]["lineTerminator"] = None
+            #updates file with default parameters
             self.reader.update_csv_with_personal_settings(filename,
                                                           sniffHeader,
                                                           enc["encoding"],
@@ -413,22 +544,35 @@ class reader_and_gui_interface():
             return
             
         
-    def getXSLFile(self, listbox:tk.Listbox, xsl_textbox:tk.Entry, parameter_listbox:tk.Listbox):
+    def getXSLFile(self, listbox:tk.Listbox, xsl_textbox:tk.Entry):
+        """reads xsl Stylesheer from file dialog
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            xsl_textbox: The textbox the relative or absolute filpath of the xsl Stylesheet will be written in
+        
+        Returns:
+            True of False to check if the xsl Stylesheet can be used for the xml or not"""
+         
         if len(listbox.curselection()) == 0:
             showerror("Error!", "No XML-File selected to set Stylesheet for. Please select XML-File in Listbox")
             return False
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        #file dialog to select xsl File
         xsl_file = askopenfile()
         if xsl_file is None:
             return
         if xsl_file.name.endswith(".xsl"):
             try:
+                #reads Parameters from xsl Stylesheet
                 self.reader.getXMLParameters(filename, xsl_file.name)  
             except ValueError as value_error:
                 showerror("Error!", value_error)
                 return False
             self.reader.opened_files_dict[filename]["xsl_file"] = xsl_file.name
+            #writes the relative or absolute filepath in the textbox
             self.updateXSLFileTextbox(xsl_textbox, filename)
             
             return True
@@ -438,6 +582,17 @@ class reader_and_gui_interface():
             return False
     
     def updateXSLFileTextbox(self, xsl_textbox:tk.Entry, selected_file:str):
+        """updates the xsl textbox to write the absolute or relative filepath of the
+        xsl Stylesheet in it
+        
+        Parameters:
+            xsl_textbox: the textbox for the filepath
+            selected_file: the file, which has been selected in the main listbox
+        
+        Returns:
+            nothing or void"""
+        
+        #sets state of the textbox to normal
         xsl_textbox.config(state="normal")
         xsl_textbox.delete(0, tk.END)
         try:
@@ -446,19 +601,45 @@ class reader_and_gui_interface():
                 
         except KeyError:
             return
+        #sets state of the textbox back to readonly, so the user cannot change the filepath of the xsl Stylesheet in the gui
         xsl_textbox.config(state="readonly") 
         
-    def showXMLParameterFunctionality(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, filename:str):      
+    def showXMLParameterFunctionality(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, filename:str):  
+        """writes the found xsl Parameters in the listbox in the xml configurator labelframe
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            parameter_listbox: the listbox for the xsl Parameters found in the xsl Stylesheet
+            filename: the selected file, whose parameters shall be written in parameter_listbox
+            
+        Returns:
+            nothing or void"""
+            
         index = 0
+        #gets list of parameters from the xml file, which have been read beforehand
         tmp_parameters_list = list(self.reader.opened_files_dict[filename])
         try:
+            #inserts the parameters in the listbox
             for i in range(self.reader.opened_files_dict[filename]["parameters_len"]):
                 parameter_listbox.insert(index, tmp_parameters_list[i])
                 index += 1
         except KeyError:
             return
         
-    def chooseXMLParameter(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, xml_parameters_textbox:tk.Entry, filename:str):      
+    def chooseXMLParameter(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, xml_parameters_textbox:tk.Entry, filename:str):
+        """This function lets the user choose a parameter from parameter_listbox, and the corresponding value of the parameter
+        will be written in xml_parameters_textbox
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            parameter_listbox: the listbox for the xsl Parameters found in the xsl Stylesheet
+            xml_parameters_textbox: a textbox below parameter_listbox in the gui, to write an change the parameter value
+            filename: the selected file, whose parameters shall be written in parameter_listbox
+        Returns:
+            nothing or void"""
+            
         try:
             selected_elem = parameter_listbox.curselection()
         
@@ -466,28 +647,54 @@ class reader_and_gui_interface():
         except tk.TclError:
             return
         
+        #writes the default value of the parameter in xml_parameters_textbox
         xml_parameters_textbox.config(state="normal")
         xml_parameters_textbox.delete(0, tk.END)   
         xml_parameters_textbox.insert(0, self.reader.opened_files_dict[filename][parameter][1:-1])
     
     def changeXMLParameter(self, listbox:tk.Listbox, parameter_listbox:tk.Listbox, parameters_textbox:tk.Entry, filename:str):
-        try:
-            selected_elem = parameter_listbox.curselection()
+        """lets the user change the content of the Parameters textbox to set a personal value for the parameter
         
+        Parameters: 
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            parameter_listbox: the listbox for the xsl Parameters found in the xsl Stylesheet
+            parameters_textbox: a textbox below parameter_listbox in the gui, to write an change the parameter value
+            filename: the selected file, whose parameters shall be written in parameter_listbox
+        
+        Returns:
+            nothing or void"""
+            
+        try:
+            selected_elem = parameter_listbox.curselection()        
             parameter = parameter_listbox.get(selected_elem)
         except tk.TclError:
             return
+        #gets the value the user has typed into the textbox
         value = parameters_textbox.get()
         if value is not None:
             try:
+                #updates the dataframe with the changed parameter
                 self.reader.addXMLParameter(filename, parameter, value)
+            #if a error occurs all parameters will be set back to their default values
             except ValueError as value_error:
                 self.reader.getXMLParameters(filename, self.reader.opened_files_dict[filename]["xsl_file"]) 
                 showerror("Error!", value_error)
     
     def setXMLUserHeader(self, listbox:tk.Listbox, xml_header_var:tk.IntVar):
+        """gets the value of the checkbox for the xml header of the selected file and sets the header accordingly
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+            xml_header_var: the variable, which holds the selected value of the checkbox for the header
+        
+        Returns:
+            filename: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         filename = listbox.get(selected_elem)
+        #the variable for the checkbox can only have the values 0 or 1, so it has to be converted to a bool
         want_header = bool(xml_header_var.get())
 
         self.reader.addXMLParameter(filename, None, None, want_header)
@@ -495,20 +702,52 @@ class reader_and_gui_interface():
         return filename
     
     def updateXMLUserHeader(self, xml_header_var:tk.IntVar, listbox:tk.Listbox):
+        """updates the checkbox to show, if the xml file has a header or not
+        
+        Parameters:
+            xml_header_var: the variable, which holds the selected value of the checkbox for the header
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+        
+        Returns:
+            nothing or void"""
+            
         selected_elem = listbox.curselection()
         selected_file = listbox.get(selected_elem)
         xml_header_var.set(0)
         if selected_file is not None:
+            #value of the checkbox can only be 0 or 1, so boolean values have to be converted to int
             selected_file_header = int(self.reader.opened_files_dict[selected_file]["hasHeader"])
             xml_header_var.set(selected_file_header)
     
     def xmlResetFunctionality(self, listbox:tk.Listbox):
+        """resets the selected xml file to its default values from the xsl Stylesheet
+        
+        Parameters:
+            listbox: the main listbox at the top of the gui window, to show which files have been selected and in which order
+                    they have been selected
+        Returns:
+            selected_file: the selected file from the main listbox"""
+            
         selected_elem = listbox.curselection()
         selected_file = listbox.get(selected_elem)
+        #resets Parameters with the given xsl Stylesheet
         self.reader.getXMLParameters(selected_file, self.reader.opened_files_dict[selected_file]["xsl_file"])
         return selected_file
     
     def finalImporterFunctionality(self, import_var_value:tk.IntVar):
+        """imports the chosen files according to a value from the radiobuttons
+        
+        Parameters:
+            import_var_value: the value, which decides what data type the dataframe will be converted to
+                            1: import as a dictionary
+                            2: import as a List of Lists
+                            3: import as a Numpy Array
+                            4: import as a Dataframe
+        
+        Returns:
+            nothing or void"""
+            
         if import_var_value == 1:
             self.reader.importAsDictionary()
         elif import_var_value ==2:
@@ -522,17 +761,32 @@ class reader_and_gui_interface():
             self.reader.importAsPandasDataframe()
             
     def finalCSVExportFunctionality(self, encoding:str, delimiter:str, quotechar:str, line_terminator:str):
+        """exports the chosen files as a csv file
+        
+        Parameters:
+            encoding: the encoding of the csv file
+            delimiter: the delimiter of the csv file
+            quotechar: the character, which shall be used for quoting
+            line_terminator: the character, which shall be used for ending lines
+        
+        Returns:
+            nothing or void"""
+            
+        #delimiter, quotechar and line_terminator can only be length-1-characters
         if len(str(delimiter)) <= 1 and len(str(quotechar)) <= 1 and len(str(line_terminator)) <= 1:
+            #default values if nothing is chosen
             if len(str(delimiter)) == 0:
                 delimiter = ","
             if len(str(quotechar)) == 0:
                 quotechar = "\""
             if len(str(line_terminator)) == 0:
                 line_terminator = "\r\n"
+            #the realtive or absolute filepath, the csv file will be saved at
             dest_filepath = asksaveasfilename(defaultextension=".csv",
             filetypes=[("CSV file", "*.csv")],
             initialfile="export.csv")
             try:
+                #converts main_dataframe to a csv file
                 self.reader.exportAsCSVFile(dest_filepath, encoding, delimiter, quotechar, line_terminator)
             except LookupError as look_up_error:
                 raise LookupError(look_up_error)
@@ -540,10 +794,20 @@ class reader_and_gui_interface():
             raise ValueError
             
     def finalXMLExportFunctionality(self, encoding:str):
+        """exports the chosen files as a xml file
+        
+        Parameters:
+            encoding: the encoding of the xml file
+        
+        Returns:
+            nothing or void"""
+            
+        #the realtive or absolute filepath, the csv file will be saved at
         dest_filepath = asksaveasfilename(defaultextension=".xml",
             filetypes=[("XML file", "*.xml")],
             initialfile="export.xml")
         try:
+            #converts main_dataframe to a xml file
             self.reader.exportAsXMLFile(dest_filepath, encoding)
         except LookupError as look_up_error:
             raise LookupError(look_up_error)
@@ -614,11 +878,8 @@ class gui(reader_and_gui_interface):
         self.delimiter_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
         self.delimiter_textbox.grid(row=3, column=2, padx=5, pady=5)
         self.delimiter_textbox.bind("<Return>", self.setFileDelimiter)   
-        self.set_all_delimiter_button = tk.Button(self.csv_konfigurator_frame, text="Set for all Files", state="disabled", command=self.setDelimiterForAll)
-        self.set_all_delimiter_button.grid(row=3, column=3, padx=2)
         self.csv_parameters_labels.append(self.delimiter_textbox_label)
         self.csv_parameters_list.append(self.delimiter_textbox) 
-        self.csv_parameters_list.append(self.set_all_delimiter_button)   
         
         self.quotechar_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Quotechar: ", fg="gray")
         self.quotechar_textbox_label.grid(row=4, column=1, pady=4)
@@ -855,13 +1116,6 @@ class gui(reader_and_gui_interface):
         super().setUserDelimiter(self.listbox, self.delimiter_textbox, self.delimiter_textbox.get())  
         self.root.focus_set()    
         self.updatePreview()
-    
-    def setDelimiterForAll(self):
-        wanted_delimiter = self.delimiter_textbox.get()
-        super().setDelimiterForAllFunctionality(self.listbox, self.delimiter_textbox, wanted_delimiter)
-        
-        self.root.focus_set()    
-        self.updatePreview()
         
     def setFileQuotechar(self, return_event):
         super().setUserQuotechar(self.listbox, self.quotechar_textbox, self.quotechar_textbox.get())  
@@ -907,12 +1161,13 @@ class gui(reader_and_gui_interface):
     def OpenXSLFile(self):
         try:
             self.xml_parameter_listbox.config(state="normal")
-            self.valid_xsl_file = super().getXSLFile(self.listbox, self.xsl_stylesheet_textbox, self.xml_parameter_listbox)
+            self.valid_xsl_file = super().getXSLFile(self.listbox, self.xsl_stylesheet_textbox)
             if self.valid_xsl_file:
                 self.xml_parameters_textbox.config(state="readonly")         
                 self.xml_parameters_listbox_label.config(fg="black")
                 self.xml_header_checkbox_label.config(fg="black")
                 self.xml_header_checkbox.config(state="normal")
+                self.xml_reset_button.config(state="normal")
                 super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
                 super().updateXMLUserHeader(self.xml_header_var, self.listbox)
             self.updatePreview()
@@ -946,6 +1201,7 @@ class gui(reader_and_gui_interface):
                 super().updateXSLFileTextbox(self.xsl_stylesheet_textbox, selected_file)
                 self.xml_parameters_listbox_label.config(fg="black")
                 self.xml_parameter_listbox.config(state="normal")
+                self.xml_reset_button.config(state="normal")
                 self.xml_parameter_listbox.delete(0, tk.END)
                 super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
                 super().updateXMLUserHeader(self.xml_header_var, self.listbox)
@@ -1020,13 +1276,12 @@ class gui(reader_and_gui_interface):
                 self.xsl_stylesheet_textbox_label.config(fg="black")
                 self.xsl_stylesheet_textbox.config(state="readonly")
                 self.button_add_xsl_File.config(state="normal")
-                self.xml_header_checkbox.config(state="normal")
-                self.xml_header_checkbox_label.config(fg="black")
-                self.xml_reset_button.config(state="normal")
+
                 if self.valid_xsl_file:
                     super().updateXSLFileTextbox(self.xsl_stylesheet_textbox, selected_file)
                     self.xml_parameters_listbox_label.config(fg="black")
                     self.xml_parameter_listbox.config(state="normal")
+                    self.xml_reset_button.config(state="normal")
                     super().showXMLParameterFunctionality(self.listbox, self.xml_parameter_listbox, self.filename)
                     super().updateXMLUserHeader(self.xml_header_var, self.listbox)
                     

@@ -60,7 +60,6 @@ class dataframeAndHeaderHandler():
             self.main_dataframe = new_dataframe
             self.column_amount = column_amount
             self.find_header_formats(self.main_dataframe)
-
         else:
             #Tests if the column amounts of the two dataframes are the same, if not new_dataframe cannot be appended
             if self.column_amount is not column_amount:

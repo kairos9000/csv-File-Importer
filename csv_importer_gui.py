@@ -564,13 +564,13 @@ class gui(reader_and_gui_interface):
         super().__init__()
         
         self.Importer_Labelframe = tk.LabelFrame(self.root, text="Importer", bg="gray24", fg="white")
-        self.Importer_Labelframe.grid(row=1, column=1, padx=10, pady=10)
+        self.Importer_Labelframe.grid(row=1, column=1, padx=10, pady=10, sticky='NSEW')
         
         self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Configurator", bg="gray24", fg="white")
-        self.Konfigurator_Labelframe.grid(row=3, column=1, padx=10, pady=10)
+        self.Konfigurator_Labelframe.grid(row=1, column=2, padx=10, pady=10)
         
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview", bg="gray24", fg="white")
-        self.preview_table_Labelframe.grid(row=3, column=2, padx=10, pady=10)
+        self.preview_table_Labelframe.grid(row=3, column=1, columnspan=2, padx=10, pady=10, sticky="NSEW")
        
         self.csv_parameters_list:list = []
         self.csv_parameters_labels:list = []
@@ -589,7 +589,7 @@ class gui(reader_and_gui_interface):
         self.csv_parameters_labels.append(self.csv_konfigurator_frame)
         
         self.listbox = tk.Listbox(
-            listbox_frame, width=50, selectmode=tk.SINGLE)
+            listbox_frame, width=50, selectmode=tk.SINGLE, height=17)
         scrollbar_x = tk.Scrollbar(listbox_frame, orient="horizontal")
         scrollbar_y = tk.Scrollbar(listbox_frame)
         scrollbar_x.pack(side=tk.BOTTOM, fill=tk.BOTH)
@@ -602,52 +602,52 @@ class gui(reader_and_gui_interface):
         self.listbox.bind("<<ListboxSelect>>", self.listboxSelectionChanged)  
         
         self.encodings_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Encoding: ", fg="gray")
-        self.encodings_textbox_label.grid(row=1, column=1, pady=10)
+        self.encodings_textbox_label.grid(row=1, column=1, pady=2)
         self.encoding_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled")     
-        self.encoding_textbox.grid(row=1,column=2, padx=10, pady=10)
+        self.encoding_textbox.grid(row=1,column=2, padx=2, pady=2)
         self.encoding_textbox.bind("<Return>", self.setFileEncoding)
         self.csv_parameters_labels.append(self.encodings_textbox_label)
         self.csv_parameters_list.append(self.encoding_textbox)
         
         self.delimiter_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Delimiter: ", fg="gray")
-        self.delimiter_textbox_label.grid(row=3, column=1, pady=10)
+        self.delimiter_textbox_label.grid(row=3, column=1, pady=5)
         self.delimiter_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
-        self.delimiter_textbox.grid(row=3, column=2, padx=10, pady=10)
+        self.delimiter_textbox.grid(row=3, column=2, padx=5, pady=5)
         self.delimiter_textbox.bind("<Return>", self.setFileDelimiter)   
         self.set_all_delimiter_button = tk.Button(self.csv_konfigurator_frame, text="Set for all Files", state="disabled", command=self.setDelimiterForAll)
-        self.set_all_delimiter_button.grid(row=3, column=3, padx=10)
+        self.set_all_delimiter_button.grid(row=3, column=3, padx=2)
         self.csv_parameters_labels.append(self.delimiter_textbox_label)
         self.csv_parameters_list.append(self.delimiter_textbox) 
         self.csv_parameters_list.append(self.set_all_delimiter_button)   
         
         self.quotechar_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Quotechar: ", fg="gray")
-        self.quotechar_textbox_label.grid(row=4, column=1, pady=10)
+        self.quotechar_textbox_label.grid(row=4, column=1, pady=4)
         self.quotechar_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
-        self.quotechar_textbox.grid(row=4, column=2, padx=10, pady=10)
+        self.quotechar_textbox.grid(row=4, column=2, padx=4, pady=4)
         self.quotechar_textbox.bind("<Return>", self.setFileQuotechar) 
         self.csv_parameters_labels.append(self.quotechar_textbox_label)
         self.csv_parameters_list.append(self.quotechar_textbox) 
         
         self.header_var = tk.IntVar()
         self.header_checkbox_label = tk.Label(self.csv_konfigurator_frame, text="Header: ", fg="gray")
-        self.header_checkbox_label.grid(row=5, column=1, pady=10)
+        self.header_checkbox_label.grid(row=5, column=1, pady=4)
         self.header_checkbox = tk.Checkbutton(self.csv_konfigurator_frame, state="disabled", command=self.setFileHeader, variable=self.header_var)
-        self.header_checkbox.grid(row=5, column=2, padx=10, pady=10)
+        self.header_checkbox.grid(row=5, column=2, padx=4, pady=4)
         self.csv_parameters_labels.append(self.header_checkbox_label)
         self.csv_parameters_list.append(self.header_checkbox)
         
         self.skip_spaces_var = tk.IntVar()
         self.skip_spaces_checkbox_label = tk.Label(self.csv_konfigurator_frame, text="Skip Initial Spaces: ", fg="gray")
-        self.skip_spaces_checkbox_label.grid(row=6, column=1, pady=10)
+        self.skip_spaces_checkbox_label.grid(row=6, column=1, pady=4)
         self.skip_spaces_checkbox = tk.Checkbutton(self.csv_konfigurator_frame, state="disabled", command=self.setFileSkipSpaces, variable=self.skip_spaces_var)
-        self.skip_spaces_checkbox.grid(row=6, column=2, padx=10, pady=10)
+        self.skip_spaces_checkbox.grid(row=6, column=2, padx=4, pady=4)
         self.csv_parameters_labels.append(self.skip_spaces_checkbox_label)
         self.csv_parameters_list.append(self.skip_spaces_checkbox)
         
         self.line_terminator_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Line Terminator: ", fg="gray")
-        self.line_terminator_textbox_label.grid(row=7, column=1, pady=10)
+        self.line_terminator_textbox_label.grid(row=7, column=1, pady=4)
         self.line_terminator_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
-        self.line_terminator_textbox.grid(row=7, column=2, padx=10, pady=10)
+        self.line_terminator_textbox.grid(row=7, column=2, padx=4, pady=4)
         self.line_terminator_textbox.bind("<Return>", self.setFileLineTerminator) 
         self.csv_parameters_labels.append(self.line_terminator_textbox_label)
         self.csv_parameters_list.append(self.line_terminator_textbox)
@@ -655,15 +655,15 @@ class gui(reader_and_gui_interface):
         self.quoting_var = tk.IntVar()
         self.quoting_var.set(None)
         self.quoting_radiobuttons_label = tk.Label(self.csv_konfigurator_frame, text="Quoting: ", fg="gray")
-        self.quoting_radiobuttons_label.grid(row=8, column=1, pady=10)
+        self.quoting_radiobuttons_label.grid(row=8, column=1, pady=4)
         self.quote_minimal_button = tk.Radiobutton(self.csv_konfigurator_frame, text="Minimal", variable=self.quoting_var, value=0, state="disabled", command=self.setFileQuoting)
-        self.quote_minimal_button.grid(row=8, column=2, padx=10, pady=10)
+        self.quote_minimal_button.grid(row=8, column=2, padx=4, pady=4)
         self.quote_all_button = tk.Radiobutton(self.csv_konfigurator_frame, text="All", variable=self.quoting_var, value=1, state="disabled", command=self.setFileQuoting)
-        self.quote_all_button.grid(row=8, column=3, padx=10, pady=10)
+        self.quote_all_button.grid(row=8, column=3, padx=4, pady=4)
         self.quote_non_numeric_button = tk.Radiobutton(self.csv_konfigurator_frame, text="Non Numeric", variable=self.quoting_var, value=2, state="disabled", command=self.setFileQuoting)
-        self.quote_non_numeric_button.grid(row=9, column=2, padx=10, pady=10)
+        self.quote_non_numeric_button.grid(row=9, column=2, padx=4, pady=4)
         self.quote_none_button = tk.Radiobutton(self.csv_konfigurator_frame, text="None", variable=self.quoting_var, value=3, state="disabled", command=self.setFileQuoting)
-        self.quote_none_button.grid(row=9, column=3, padx=10, pady=10)
+        self.quote_none_button.grid(row=9, column=3, padx=4, pady=4)
         self.csv_parameters_labels.append(self.quoting_radiobuttons_label)
         self.csv_parameters_list.append(self.quote_minimal_button)
         self.csv_parameters_list.append(self.quote_all_button)
@@ -677,13 +677,13 @@ class gui(reader_and_gui_interface):
         
         
         self.xml_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="XML-Configurator", fg="gray")
-        self.xml_konfigurator_frame.pack(side=tk.RIGHT, padx=10, pady=10)
+        self.xml_konfigurator_frame.pack(side=tk.RIGHT, padx=2, pady=2)
         self.xml_parameters_labels.append(self.xml_konfigurator_frame)
         
         self.xsl_stylesheet_textbox_label = tk.Label(self.xml_konfigurator_frame, text="XSL-Stylesheet:", fg="gray")
-        self.xsl_stylesheet_textbox_label.grid(row=1, column=1, padx=10, pady=10)
+        self.xsl_stylesheet_textbox_label.grid(row=1, column=1, padx=2, pady=2)
         xsl_stylesheet_scrollbar_frame = tk.Frame(self.xml_konfigurator_frame)
-        xsl_stylesheet_scrollbar_frame.grid(row=1, column=2, padx=10)
+        xsl_stylesheet_scrollbar_frame.grid(row=1, column=2, padx=2)
         scrollbar_x_stylesheet = tk.Scrollbar(xsl_stylesheet_scrollbar_frame, orient="horizontal")
         self.xsl_stylesheet_textbox = tk.Entry(xsl_stylesheet_scrollbar_frame, state="disabled", width=40, xscrollcommand=scrollbar_x_stylesheet.set)
         scrollbar_x_stylesheet.pack(side=tk.BOTTOM, fill=tk.BOTH)
@@ -698,9 +698,9 @@ class gui(reader_and_gui_interface):
         
         self.valid_xsl_file = False
         self.xml_parameters_listbox_label = tk.Label(self.xml_konfigurator_frame, text="XML-Parameters:", fg="gray")
-        self.xml_parameters_listbox_label.grid(row=3, column=1, pady=10, padx=10)
+        self.xml_parameters_listbox_label.grid(row=3, column=1, pady=2, padx=2)
         xml_parameter_scrollbar_frame = tk.Frame(self.xml_konfigurator_frame)
-        xml_parameter_scrollbar_frame.grid(row=3, column=2, padx=10, pady=10)
+        xml_parameter_scrollbar_frame.grid(row=3, column=2, padx=2, pady=2)
         scrollbar_x_parameters = tk.Scrollbar(xml_parameter_scrollbar_frame, orient="horizontal")
         scrollbar_y_parameters = tk.Scrollbar(xml_parameter_scrollbar_frame)
         self.xml_parameter_listbox = tk.Listbox(xml_parameter_scrollbar_frame,
@@ -725,14 +725,14 @@ class gui(reader_and_gui_interface):
         
         self.xml_header_var = tk.IntVar()
         self.xml_header_checkbox_label = tk.Label(self.xml_konfigurator_frame, text="Header: ", fg="gray")
-        self.xml_header_checkbox_label.grid(row=5, column=1, pady=10)
+        self.xml_header_checkbox_label.grid(row=5, column=1, pady=2)
         self.xml_header_checkbox = tk.Checkbutton(self.xml_konfigurator_frame, state="disabled", command=self.setXMLHeader, variable=self.xml_header_var)
-        self.xml_header_checkbox.grid(row=5, column=2, padx=10, pady=10)
+        self.xml_header_checkbox.grid(row=5, column=2, padx=2, pady=2)
         self.xml_parameters_labels.append(self.xml_header_checkbox_label)
         self.xml_parameters_list.append(self.xml_header_checkbox)
         
         self.xml_reset_button = tk.Button(self.xml_konfigurator_frame, text="Reset", state="disabled", command=self.xmlReset)
-        self.xml_reset_button.grid(row=6, column=2, padx=10, pady=10)
+        self.xml_reset_button.grid(row=6, column=2, padx=2, pady=2)
         self.xml_parameters_list.append(self.xml_reset_button)
         
 
@@ -753,7 +753,7 @@ class gui(reader_and_gui_interface):
         self.preview_table.show()
 
         self.import_export_buttons_frame = tk.Frame(self.root, bg="gray16")
-        self.import_export_buttons_frame.grid(row=4, column=2)
+        self.import_export_buttons_frame.grid(row=4, column=2, sticky="E")
         
         self.button_importCSV = tk.Button(
             self.import_export_buttons_frame, text="Import as...", command=self.ImportAs)

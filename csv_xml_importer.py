@@ -69,9 +69,17 @@ class dataframeAndHeaderHandler():
             #Compares the column types of the two dataframes through regular expressions and tests, if the types are compatible,
             #if not a error will be thrown
             #Takes only the first row of the two dataframes and compares the types
+            #but tests if the file have headers, if True the second row will be taken
+            #and the dataframes must have a length greater than 1 to compare them
             if len(new_dataframe.index) > 1 and len(self.main_dataframe.index) > 1:
-                type_list_new_dataframe = list(new_dataframe.iloc[1])
-                type_list_main_dataframe = list(self.main_dataframe.iloc[1])
+                if hasHeader:
+                    type_list_new_dataframe = list(new_dataframe.iloc[0])
+                else:
+                    type_list_new_dataframe = list(new_dataframe.iloc[1])
+                if self.__main_dataframe_has_header:
+                    type_list_main_dataframe = list(self.main_dataframe.iloc[0])
+                else:
+                    type_list_main_dataframe = list(self.main_dataframe.iloc[0])
                 regex_types_new_dataframe = []
                 regex_types_main_dataframe = []
                 compare_list_new_dataframe = []

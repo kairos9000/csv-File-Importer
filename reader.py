@@ -281,7 +281,7 @@ class reader():
         except (ValueError,pd.errors.ParserError) as value_error:
             raise ValueError(value_error)
             
-        
+        print(self.main_dataframe)
         return self.main_dataframe
     
     def getXMLParameters(self, filename:str, xsl_file:str):

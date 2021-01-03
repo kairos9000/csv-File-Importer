@@ -72,7 +72,7 @@ class reader_and_gui_interface():
                     if filename in self.reader.opened_files_dict.keys():
                         self.reader.opened_files_dict.pop(filename)
                     showerror("Error!", value_error)
-                    return
+                    
             
             listbox.delete(0, tk.END)
             self.__index = 0

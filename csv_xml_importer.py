@@ -69,29 +69,30 @@ class dataframeAndHeaderHandler():
             #Compares the column types of the two dataframes through regular expressions and tests, if the types are compatible,
             #if not a error will be thrown
             #Takes only the first row of the two dataframes and compares the types
-            type_list_new_dataframe = list(new_dataframe.iloc[1])
-            type_list_main_dataframe = list(self.main_dataframe.iloc[1])
-            regex_types_new_dataframe = []
-            regex_types_main_dataframe = []
-            compare_list_new_dataframe = []
-            compare_list_main_dataframe = []
-            #fills the two lists with the types, the regular expressions found
-            regex_types_new_dataframe = self.regex_list_filler(regex_types_new_dataframe, type_list_new_dataframe)
-            regex_types_main_dataframe = self.regex_list_filler(regex_types_main_dataframe, type_list_main_dataframe)
-            #splices the entries of the lists, because the function regex_list_filler appends numbers to the types, to differenciate the columns in the dataframe
-            splice_len = 1
-            string_splice_len = (splice_len + 1)*(-1)
-            for item_new, item_main in zip(regex_types_new_dataframe,regex_types_main_dataframe):
-                item_new = item_new[:string_splice_len]
-                item_main = item_main[:string_splice_len]
-                splice_len += 1
-                string_splice_len = (ceil(log(splice_len, 10)+1))*(-1)
-                compare_list_new_dataframe.append(item_new)
-                compare_list_main_dataframe.append(item_main)
+            if len(new_dataframe.index) > 1 and len(self.main_dataframe.index) > 1:
+                type_list_new_dataframe = list(new_dataframe.iloc[1])
+                type_list_main_dataframe = list(self.main_dataframe.iloc[1])
+                regex_types_new_dataframe = []
+                regex_types_main_dataframe = []
+                compare_list_new_dataframe = []
+                compare_list_main_dataframe = []
+                #fills the two lists with the types, the regular expressions found
+                regex_types_new_dataframe = self.regex_list_filler(regex_types_new_dataframe, type_list_new_dataframe)
+                regex_types_main_dataframe = self.regex_list_filler(regex_types_main_dataframe, type_list_main_dataframe)
+                #splices the entries of the lists, because the function regex_list_filler appends numbers to the types, to differenciate the columns in the dataframe
+                splice_len = 1
+                string_splice_len = (splice_len + 1)*(-1)
+                for item_new, item_main in zip(regex_types_new_dataframe,regex_types_main_dataframe):
+                    item_new = item_new[:string_splice_len]
+                    item_main = item_main[:string_splice_len]
+                    splice_len += 1
+                    string_splice_len = (ceil(log(splice_len, 10)+1))*(-1)
+                    compare_list_new_dataframe.append(item_new)
+                    compare_list_main_dataframe.append(item_main)
 
-            #compares the types of the two dataframes
-            if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
-                raise ValueError("The Types of the Dataframes are not compatible")
+                #compares the types of the two dataframes
+                if sorted(compare_list_new_dataframe) != sorted(compare_list_main_dataframe):
+                    raise ValueError("The Types of the Dataframes are not compatible")
                 
                 
             #tests if new_dataframe has a header

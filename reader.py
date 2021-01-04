@@ -564,10 +564,12 @@ class reader():
                 if digit_tester or any(special_char_tester):
                     raise ValueError("Header cannot be converted to XML, because a column starts with a number or a special character")
                 try:
-                    #adds the entry of the dataframe to the Tag
-                    xml_row_elem = etree.SubElement(xml_row, elem)
+                    #replaces spaces in the column names by _ and adds the column name as a tag name
+                    replaced_elem = str_elem.replace(" ", "_")
+                    xml_row_elem = etree.SubElement(xml_row, replaced_elem)
                 except ValueError:
                     raise ValueError(elem+" is no valid Item Tag-name")
+                #adds entry of the column to tag name
                 xml_row_elem.text = str(row[elem])
 
         #converts the root element and every following tag added to root to a xml file using the lxml module

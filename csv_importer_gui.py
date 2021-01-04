@@ -817,113 +817,133 @@ class reader_and_gui_interface():
 
 
 class gui(reader_and_gui_interface):
-    """This class is responsible for the GUI"""
+    """This class is responsible for the GUI and to call the methods from the interface class"""
 
     def __init__(self):
-
+        """The constructor of the class gui. 
+        It defines the Elements of the gui and a reader_and_gui_interface"""
+        
+        #main window of the gui, where all elements are placed in
         self.root = tk.Tk()
-        self.root.minsize(1000, 300)
+        self.root.minsize(1200, 630)
         self.root.title("CSV_XML_Importer")
         self.root.config(bg="gray16")
+        #defines a reader_and_gui_interface object, to get access to its methods
         super().__init__()
         
+        #Labelframe of the importer window, for the file listbox and the import buttons
         self.Importer_Labelframe = tk.LabelFrame(self.root, text="Importer", bg="gray24", fg="white")
         self.Importer_Labelframe.grid(row=1, column=1, padx=10, pady=10, sticky='NSEW')
         
-        self.Konfigurator_Labelframe = tk.LabelFrame(self.root, text="File-Configurator", bg="gray24", fg="white")
-        self.Konfigurator_Labelframe.grid(row=1, column=2, padx=10, pady=10)
+        #labelframe for the csv and xml configurator
+        self.Configurator_Labelframe = tk.LabelFrame(self.root, text="File-Configurator", bg="gray24", fg="white")
+        self.Configurator_Labelframe.grid(row=1, column=2, padx=10, pady=10)
         
+        #labelframe for the pandastable preview of the file
         self.preview_table_Labelframe = tk.LabelFrame(self.root, text="Preview", bg="gray24", fg="white")
         self.preview_table_Labelframe.grid(row=3, column=1, columnspan=2, padx=10, pady=10, sticky="NSEW")
        
+        #lists for the csv and xml parameters, to shorten the coloring of all the elements
         self.csv_parameters_list:list = []
         self.csv_parameters_labels:list = []
         self.xml_parameters_list:list = []
         self.xml_parameters_labels:list = []
+        #saves last selected filename, if the listbox loses focus
         self.filename:str = ""
         
+        #defines the frames for the file buttons and the listbox to place them in the labelframe
         file_buttons_frame = tk.Frame(self.Importer_Labelframe, bg="gray24")
         file_buttons_frame.pack(side=tk.LEFT)
         listbox_frame = tk.Frame(self.Importer_Labelframe, bg="gray24")
         listbox_frame.pack(side=tk.TOP)
-        self.grid_frame = tk.Frame(self.Konfigurator_Labelframe, bg="gray24")
-        self.grid_frame.pack(side=tk.BOTTOM)
-        self.csv_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="CSV-Configurator", fg="gray")
-        self.csv_konfigurator_frame.pack(side=tk.LEFT, padx=10, pady=10)
-        self.csv_parameters_labels.append(self.csv_konfigurator_frame)
         
-        self.listbox = tk.Listbox(
-            listbox_frame, width=50, selectmode=tk.SINGLE, height=17)
-        scrollbar_x = tk.Scrollbar(listbox_frame, orient="horizontal")
-        scrollbar_y = tk.Scrollbar(listbox_frame)
-        scrollbar_x.pack(side=tk.BOTTOM, fill=tk.BOTH)
-        scrollbar_y.pack(side=tk.RIGHT, fill=tk.BOTH)
-        self.listbox.config(xscrollcommand=scrollbar_x.set)
-        self.listbox.config(yscrollcommand=scrollbar_y.set)
-        scrollbar_x.config(command=self.listbox.xview)
-        scrollbar_y.config(command=self.listbox.yview)
+        #labelframe for the csv file configurator
+        self.csv_configurator_frame = tk.LabelFrame(self.Configurator_Labelframe, text="CSV-Configurator", fg="gray")
+        self.csv_configurator_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        self.csv_parameters_labels.append(self.csv_configurator_frame)
+        
+        #listbox for the filenames
+        self.listbox = tk.Listbox(listbox_frame, width=50, selectmode=tk.SINGLE, height=17)
+        scrollbar_x_listbox = tk.Scrollbar(listbox_frame, orient="horizontal")
+        scrollbar_y_listbox = tk.Scrollbar(listbox_frame)
+        scrollbar_x_listbox.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        scrollbar_y_listbox.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.listbox.config(xscrollcommand=scrollbar_x_listbox.set)
+        self.listbox.config(yscrollcommand=scrollbar_y_listbox.set)
+        scrollbar_x_listbox.config(command=self.listbox.xview)
+        scrollbar_y_listbox.config(command=self.listbox.yview)
         self.listbox.pack(side=tk.BOTTOM, padx=10, pady=10)
+        #executes listboxSelectionChanged if a item from the listbox is selected
         self.listbox.bind("<<ListboxSelect>>", self.listboxSelectionChanged)  
         
-        self.encodings_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Encoding: ", fg="gray")
+        #textbox to show the encoding and to let the user change the encoding of the csv files
+        self.encodings_textbox_label = tk.Label(self.csv_configurator_frame, text="Encoding: ", fg="gray")
         self.encodings_textbox_label.grid(row=1, column=1, pady=2)
-        self.encoding_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled")     
+        self.encoding_textbox = tk.Entry(self.csv_configurator_frame, exportselection=0, state="disabled")     
         self.encoding_textbox.grid(row=1,column=2, padx=2, pady=2)
         self.encoding_textbox.bind("<Return>", self.setFileEncoding)
+        #saves the textbox and its label in the lists, for coloring
         self.csv_parameters_labels.append(self.encodings_textbox_label)
         self.csv_parameters_list.append(self.encoding_textbox)
         
-        self.delimiter_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Delimiter: ", fg="gray")
+        #textbox for the delimiter of the csv files
+        self.delimiter_textbox_label = tk.Label(self.csv_configurator_frame, text="Delimiter: ", fg="gray")
         self.delimiter_textbox_label.grid(row=3, column=1, pady=5)
-        self.delimiter_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
+        self.delimiter_textbox = tk.Entry(self.csv_configurator_frame, exportselection=0, state="disabled", width=2)     
         self.delimiter_textbox.grid(row=3, column=2, padx=5, pady=5)
+        #sets the new delimiter to the content of the textbox if Enter is pressed
         self.delimiter_textbox.bind("<Return>", self.setFileDelimiter)   
         self.csv_parameters_labels.append(self.delimiter_textbox_label)
         self.csv_parameters_list.append(self.delimiter_textbox) 
         
-        self.quotechar_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Quotechar: ", fg="gray")
+        #textbox for the character, which will be used for quoting in the csv files
+        self.quotechar_textbox_label = tk.Label(self.csv_configurator_frame, text="Quotechar: ", fg="gray")
         self.quotechar_textbox_label.grid(row=4, column=1, pady=4)
-        self.quotechar_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
+        self.quotechar_textbox = tk.Entry(self.csv_configurator_frame, exportselection=0, state="disabled", width=2)     
         self.quotechar_textbox.grid(row=4, column=2, padx=4, pady=4)
         self.quotechar_textbox.bind("<Return>", self.setFileQuotechar) 
         self.csv_parameters_labels.append(self.quotechar_textbox_label)
         self.csv_parameters_list.append(self.quotechar_textbox) 
         
+        #checkbox to activate or deactivate the header for the selected csv file
         self.header_var = tk.IntVar()
-        self.header_checkbox_label = tk.Label(self.csv_konfigurator_frame, text="Header: ", fg="gray")
+        self.header_checkbox_label = tk.Label(self.csv_configurator_frame, text="Header: ", fg="gray")
         self.header_checkbox_label.grid(row=5, column=1, pady=4)
-        self.header_checkbox = tk.Checkbutton(self.csv_konfigurator_frame, state="disabled", command=self.setFileHeader, variable=self.header_var)
+        self.header_checkbox = tk.Checkbutton(self.csv_configurator_frame, state="disabled", command=self.setFileHeader, variable=self.header_var)
         self.header_checkbox.grid(row=5, column=2, padx=4, pady=4)
         self.csv_parameters_labels.append(self.header_checkbox_label)
         self.csv_parameters_list.append(self.header_checkbox)
         
+        #checkbox to set if initial spaces of a field should be skipped or not in csv files
         self.skip_spaces_var = tk.IntVar()
-        self.skip_spaces_checkbox_label = tk.Label(self.csv_konfigurator_frame, text="Skip Initial Spaces: ", fg="gray")
+        self.skip_spaces_checkbox_label = tk.Label(self.csv_configurator_frame, text="Skip Initial Spaces: ", fg="gray")
         self.skip_spaces_checkbox_label.grid(row=6, column=1, pady=4)
-        self.skip_spaces_checkbox = tk.Checkbutton(self.csv_konfigurator_frame, state="disabled", command=self.setFileSkipSpaces, variable=self.skip_spaces_var)
+        self.skip_spaces_checkbox = tk.Checkbutton(self.csv_configurator_frame, state="disabled", command=self.setFileSkipSpaces, variable=self.skip_spaces_var)
         self.skip_spaces_checkbox.grid(row=6, column=2, padx=4, pady=4)
         self.csv_parameters_labels.append(self.skip_spaces_checkbox_label)
         self.csv_parameters_list.append(self.skip_spaces_checkbox)
         
-        self.line_terminator_textbox_label = tk.Label(self.csv_konfigurator_frame, text="Line Terminator: ", fg="gray")
+        #textbox for the character, which is used for the line Terminator and to change the line terminator
+        self.line_terminator_textbox_label = tk.Label(self.csv_configurator_frame, text="Line Terminator: ", fg="gray")
         self.line_terminator_textbox_label.grid(row=7, column=1, pady=4)
-        self.line_terminator_textbox = tk.Entry(self.csv_konfigurator_frame, exportselection=0, state="disabled", width=2)     
+        self.line_terminator_textbox = tk.Entry(self.csv_configurator_frame, exportselection=0, state="disabled", width=2)     
         self.line_terminator_textbox.grid(row=7, column=2, padx=4, pady=4)
         self.line_terminator_textbox.bind("<Return>", self.setFileLineTerminator) 
         self.csv_parameters_labels.append(self.line_terminator_textbox_label)
         self.csv_parameters_list.append(self.line_terminator_textbox)
         
+        #radiobuttons to select the 4 different styles of quoting, minimal, all, non numeric and none
         self.quoting_var = tk.IntVar()
         self.quoting_var.set(None)
-        self.quoting_radiobuttons_label = tk.Label(self.csv_konfigurator_frame, text="Quoting: ", fg="gray")
+        self.quoting_radiobuttons_label = tk.Label(self.csv_configurator_frame, text="Quoting: ", fg="gray")
         self.quoting_radiobuttons_label.grid(row=8, column=1, pady=4)
-        self.quote_minimal_button = tk.Radiobutton(self.csv_konfigurator_frame, text="Minimal", variable=self.quoting_var, value=0, state="disabled", command=self.setFileQuoting)
+        self.quote_minimal_button = tk.Radiobutton(self.csv_configurator_frame, text="Minimal", variable=self.quoting_var, value=0, state="disabled", command=self.setFileQuoting)
         self.quote_minimal_button.grid(row=8, column=2, padx=4, pady=4)
-        self.quote_all_button = tk.Radiobutton(self.csv_konfigurator_frame, text="All", variable=self.quoting_var, value=1, state="disabled", command=self.setFileQuoting)
+        self.quote_all_button = tk.Radiobutton(self.csv_configurator_frame, text="All", variable=self.quoting_var, value=1, state="disabled", command=self.setFileQuoting)
         self.quote_all_button.grid(row=8, column=3, padx=4, pady=4)
-        self.quote_non_numeric_button = tk.Radiobutton(self.csv_konfigurator_frame, text="Non Numeric", variable=self.quoting_var, value=2, state="disabled", command=self.setFileQuoting)
+        self.quote_non_numeric_button = tk.Radiobutton(self.csv_configurator_frame, text="Non Numeric", variable=self.quoting_var, value=2, state="disabled", command=self.setFileQuoting)
         self.quote_non_numeric_button.grid(row=9, column=2, padx=4, pady=4)
-        self.quote_none_button = tk.Radiobutton(self.csv_konfigurator_frame, text="None", variable=self.quoting_var, value=3, state="disabled", command=self.setFileQuoting)
+        self.quote_none_button = tk.Radiobutton(self.csv_configurator_frame, text="None", variable=self.quoting_var, value=3, state="disabled", command=self.setFileQuoting)
         self.quote_none_button.grid(row=9, column=3, padx=4, pady=4)
         self.csv_parameters_labels.append(self.quoting_radiobuttons_label)
         self.csv_parameters_list.append(self.quote_minimal_button)
@@ -931,16 +951,18 @@ class gui(reader_and_gui_interface):
         self.csv_parameters_list.append(self.quote_non_numeric_button)
         self.csv_parameters_list.append(self.quote_none_button)
         
-        self.csv_reset_button = tk.Button(self.csv_konfigurator_frame, text="Reset", state="disabled", command=self.csvReset)
+        #reset button the reset all parameters of the selected csv file to its defaults
+        self.csv_reset_button = tk.Button(self.csv_configurator_frame, text="Reset", state="disabled", command=self.csvReset)
         self.csv_reset_button.grid(row=12,column=2, padx=10, pady=10)
         self.csv_parameters_list.append(self.csv_reset_button)
         
         
-        
-        self.xml_konfigurator_frame = tk.LabelFrame(self.grid_frame, text="XML-Configurator", fg="gray")
+        #frame for the xml parameters
+        self.xml_konfigurator_frame = tk.LabelFrame(self.Configurator_Labelframe, text="XML-Configurator", fg="gray")
         self.xml_konfigurator_frame.pack(side=tk.RIGHT, padx=2, pady=2)
         self.xml_parameters_labels.append(self.xml_konfigurator_frame)
         
+        #textbox to show the relative or absolute filepath of the xsl Stylesheet for the selected xml file
         self.xsl_stylesheet_textbox_label = tk.Label(self.xml_konfigurator_frame, text="XSL-Stylesheet:", fg="gray")
         self.xsl_stylesheet_textbox_label.grid(row=1, column=1, padx=2, pady=2)
         xsl_stylesheet_scrollbar_frame = tk.Frame(self.xml_konfigurator_frame)
@@ -950,20 +972,23 @@ class gui(reader_and_gui_interface):
         scrollbar_x_stylesheet.pack(side=tk.BOTTOM, fill=tk.BOTH)
         self.xsl_stylesheet_textbox.pack(side=tk.BOTTOM)
         scrollbar_x_stylesheet.config(command=self.xsl_stylesheet_textbox.xview)
+        #button, which opens a file dialog to choose a xsl Stylesheet
         self.button_add_xsl_File = tk.Button(self.xml_konfigurator_frame, text="Choose XSL File", command=self.OpenXSLFile, state="disabled")
         self.button_add_xsl_File.grid(row=2, column=2)
         self.xml_parameters_labels.append(self.xsl_stylesheet_textbox_label)
         self.xml_parameters_list.append(self.xsl_stylesheet_textbox)
         self.xml_parameters_list.append(self.button_add_xsl_File)
         
-        
+        #used for validation later on, if a valid xsl file is chosen
         self.valid_xsl_file = False
+        
         self.xml_parameters_listbox_label = tk.Label(self.xml_konfigurator_frame, text="XML-Parameters:", fg="gray")
         self.xml_parameters_listbox_label.grid(row=3, column=1, pady=2, padx=2)
         xml_parameter_scrollbar_frame = tk.Frame(self.xml_konfigurator_frame)
         xml_parameter_scrollbar_frame.grid(row=3, column=2, padx=2, pady=2)
         scrollbar_x_parameters = tk.Scrollbar(xml_parameter_scrollbar_frame, orient="horizontal")
         scrollbar_y_parameters = tk.Scrollbar(xml_parameter_scrollbar_frame)
+        #listbox, which shows the parameters, which have been found in the xsl Stylesheet
         self.xml_parameter_listbox = tk.Listbox(xml_parameter_scrollbar_frame,
                                                 width=20,
                                                 height=8,
@@ -971,12 +996,14 @@ class gui(reader_and_gui_interface):
                                                 state="disabled",
                                                 xscrollcommand=scrollbar_x_parameters.set,
                                                 yscrollcommand=scrollbar_y_parameters.set)
+        #executes showXMLParameter everytime a item from the listbox is selected
         self.xml_parameter_listbox.bind("<<ListboxSelect>>", self.showXMLParameter) 
         scrollbar_x_parameters.pack(side=tk.BOTTOM, fill=tk.BOTH)
         self.xml_parameter_listbox.pack(side=tk.LEFT)
         scrollbar_y_parameters.pack(side=tk.RIGHT, fill=tk.BOTH)
         scrollbar_x_parameters.config(command=self.xml_parameter_listbox.xview)
         scrollbar_y_parameters.config(command=self.xml_parameter_listbox.yview)
+        #shows the value of the xml parameter, which has been selected in the parameter listbox
         self.xml_parameters_textbox = tk.Entry(self.xml_konfigurator_frame, state="disabled", width=2)
         self.xml_parameters_textbox.bind("<Return>", self.setXMLParameter)
         self.xml_parameters_textbox.grid(row=4, column=2)
@@ -984,6 +1011,7 @@ class gui(reader_and_gui_interface):
         self.xml_parameters_list.append(self.xml_parameter_listbox)
         self.xml_parameters_list.append(self.xml_parameters_textbox)
         
+        #checkbox to activate or deactivate the header of the xml selected xml file
         self.xml_header_var = tk.IntVar()
         self.xml_header_checkbox_label = tk.Label(self.xml_konfigurator_frame, text="Header: ", fg="gray")
         self.xml_header_checkbox_label.grid(row=5, column=1, pady=2)
@@ -992,33 +1020,36 @@ class gui(reader_and_gui_interface):
         self.xml_parameters_labels.append(self.xml_header_checkbox_label)
         self.xml_parameters_list.append(self.xml_header_checkbox)
         
+        #resets the parameters of the selected xml file to its defaults
         self.xml_reset_button = tk.Button(self.xml_konfigurator_frame, text="Reset", state="disabled", command=self.xmlReset)
         self.xml_reset_button.grid(row=6, column=2, padx=2, pady=2)
         self.xml_parameters_list.append(self.xml_reset_button)
-        
 
-        self.menu = tk.Menu(self.root)
-        self.root.config(menu=self.menu)
-
+        #opens a file dialog to let the user chose a csv or xml file
         self.button_addFile = tk.Button(
             file_buttons_frame, text="Add File/s", command=self.OpenFileGUI)
         self.button_addFile.pack(side=tk.TOP, padx=5, pady=5)
+        #removes the selected csv or xml file
         self.button_removeFile = tk.Button(
             file_buttons_frame, text="Remove selected File", command=self.RemoveFileGUI)
         self.button_removeFile.pack(side=tk.TOP, padx=5, pady=5)
+        #removes all files
         self.button_removeAllFiles = tk.Button(
             file_buttons_frame, text="Remove all Files", command=self.ClearAllFilesGUI)
         self.button_removeAllFiles.pack(side=tk.TOP, padx=5, pady=5)
         
-        self.preview_table = Table(self.preview_table_Labelframe, dataframe=self.main_dataframe)
+        #pandastable preview of the chosen files
+        self.preview_table = Table(self.preview_table_Labelframe, dataframe=self.main_dataframe, height=150)
         self.preview_table.show()
 
+        #frame for the import, export and cancel buttons
         self.import_export_buttons_frame = tk.Frame(self.root, bg="gray16")
         self.import_export_buttons_frame.grid(row=4, column=2, sticky="E")
         
-        self.button_importCSV = tk.Button(
+        #opens a toplevel window to let the user decide to which data type the dataframe should be imported
+        self.button_import_as = tk.Button(
             self.import_export_buttons_frame, text="Import as...", command=self.ImportAs)
-        self.button_importCSV.pack(side=tk.LEFT, padx=5, pady=10)
+        self.button_import_as.pack(side=tk.LEFT, padx=5, pady=10)
         self.button_exportCSV = tk.Button(
             self.import_export_buttons_frame, text="Export as...", command=self.ExportAs)
         self.button_exportCSV.pack(side=tk.LEFT, padx=5, pady=10)

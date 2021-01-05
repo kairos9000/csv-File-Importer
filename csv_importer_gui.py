@@ -11,7 +11,6 @@ from tkinter.filedialog import askopenfilenames, asksaveasfilename, askopenfile
 from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
-#TODO: Kommentare und Dokumentation schreiben
 
 class reader_and_gui_interface():
     """This class acts as an interface between instances of the class reader
@@ -1050,9 +1049,11 @@ class gui(reader_and_gui_interface):
         self.button_import_as = tk.Button(
             self.import_export_buttons_frame, text="Import as...", command=self.ImportAs)
         self.button_import_as.pack(side=tk.LEFT, padx=5, pady=10)
-        self.button_exportCSV = tk.Button(
+        #opens a toplevel window to let the user export the dataframe as a csv or xml file
+        self.button_export_as = tk.Button(
             self.import_export_buttons_frame, text="Export as...", command=self.ExportAs)
-        self.button_exportCSV.pack(side=tk.LEFT, padx=5, pady=10)
+        self.button_export_as.pack(side=tk.LEFT, padx=5, pady=10)
+        #closes the gui
         self.button_exit = tk.Button(
             self.import_export_buttons_frame, text="Cancel", command=self.root.quit)
         self.button_exit.pack(side=tk.LEFT, padx=5, pady=10)
@@ -1061,12 +1062,21 @@ class gui(reader_and_gui_interface):
 
 
     def updatePreview(self):
+        """A simple Function to update the pandastable preview table
+        
+        Returns:
+            nothing or void"""
+            
         self.getDataframe()
         self.preview_table.updateModel(TableModel(self.main_dataframe))
         self.preview_table.redraw()
         
         
     def OpenFileGUI(self):
+        """Opens and shows csv and xml files in the gui
+        
+        Returns:
+            nothing or void"""
         try:
             super().ShowFilesInterface(self.listbox)
             self.updatePreview()
@@ -1076,9 +1086,14 @@ class gui(reader_and_gui_interface):
         
 
     def RemoveFileGUI(self):
+        """Removes csv and xml files from the gui and opened_files_dict
+        
+        Returns:
+            nothing or void"""
         super().RemoveFilesInterface(self.listbox)
         self.updatePreview()
         
+        #sets every configurator element to unresponsive, because no file is selected
         self.encoding_textbox.delete(0, tk.END)
         self.delimiter_textbox.delete(0, tk.END)
         self.quotechar_textbox.delete(0, tk.END)
@@ -1107,9 +1122,14 @@ class gui(reader_and_gui_interface):
 
 
     def ClearAllFilesGUI(self):
+        """Removes all csv and xml files from the gui and opened_files_dict
+        
+        Returns:
+            nothing or void"""
         super().ClearAllFilesInterface(self.listbox)
         self.updatePreview()
         
+        #sets every configurator element to unresponsive, because no file is selected
         self.encoding_textbox.delete(0, tk.END)
         self.delimiter_textbox.delete(0, tk.END)
         self.quotechar_textbox.delete(0, tk.END)
@@ -1139,31 +1159,65 @@ class gui(reader_and_gui_interface):
 
         
     def setFileEncoding(self, return_event):
-        super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())  
+        """sets the encoding of the selected csv file in the listbox to the encoding, which is given in the
+        encoding textbox. If its not possible to set the encoding the default encoding from the file will be taken.
+        The Textbox is confirmed by pressing enter
+        
+        Returns:
+            nothing or void"""
+        super().setUserEncoding(self.listbox, self.encoding_textbox, self.encoding_textbox.get())
+        #sets the focus to the root element after pressing enter, to let the user know that the input has been processed  
         self.root.focus_set()    
         self.updatePreview()
         
     def setFileDelimiter(self, return_event):
+        """sets the delimiter of the selected csv file in the listbox to the delimiter, which is given in the
+        delimiter textbox. If its not possible to set the delimiter the default delimiter from the file will be taken.
+        The Textbox is confirmed by pressing enter
+        
+        Returns:
+            nothing or void"""
         super().setUserDelimiter(self.listbox, self.delimiter_textbox, self.delimiter_textbox.get())  
         self.root.focus_set()    
         self.updatePreview()
         
     def setFileQuotechar(self, return_event):
+        """sets the character used for quoting of the selected csv file in the listbox to the character, which is given in the
+        quotechar textbox. If its not possible to set the character the default quoting character from the file will be taken.
+        The Textbox is confirmed by pressing enter
+        
+        Returns:
+            nothing or void"""
         super().setUserQuotechar(self.listbox, self.quotechar_textbox, self.quotechar_textbox.get())  
         self.root.focus_set()    
         self.updatePreview()
         
     def setFileHeader(self):
+        """gets the value of the checkbox responsible for the csv header and activates or deactivates the header
+        
+        Returns:
+            nothing or void"""
         super().setUserHeader(self.listbox, self.header_var)  
         self.root.focus_set()    
         self.updatePreview()
     
     def setFileSkipSpaces(self):
+        """gets the value of the checkbox responsible for skipping initial spaces for csv files and 
+        skips or doesn't skip initial spaces
+        
+        Returns:
+            nothing or void"""
         super().setUserSkipSpaces(self.listbox, self.skip_spaces_var)  
         self.root.focus_set()    
         self.updatePreview()
         
     def setFileLineTerminator(self, return_event):
+        """sets the character used for line termination of the selected csv file in the listbox to the character, which is given in the
+        lineTerminator textbox. If its not possible to set the character the default line terminator character from the file will be taken.
+        The Textbox is confirmed by pressing enter
+        
+        Returns:
+            nothing or void"""
         super().setUserLineTerminator(self.listbox, self.line_terminator_textbox, self.line_terminator_textbox.get()) 
         try: 
             self.root.focus_set()    
@@ -1173,11 +1227,20 @@ class gui(reader_and_gui_interface):
             return
         
     def setFileQuoting(self):
+        """gets the value of the selected radio button and sets the quoting of the csv files to one of the four possible styles,
+        minimal, all, non numeric and none
+        
+        Returns:
+            nothing or void"""
         super().setUserQuoting(self.listbox, self.quoting_var)  
         self.root.focus_set()    
         self.updatePreview()
     
     def csvReset(self):
+        """Resets every csv parameter of the selected file to its default sniffed value
+        
+        Returns:
+            nothing or void"""
         selected_file = super().csvReset(self.listbox)
         super().updateEncodingTextbox(self.encoding_textbox, selected_file)
         super().updateDelimiterTextbox(self.delimiter_textbox, selected_file)
@@ -1190,6 +1253,12 @@ class gui(reader_and_gui_interface):
         self.updatePreview()
         
     def OpenXSLFile(self):
+        """asks the user to choose a xsl Stylesheet. If a valid Stylesheet is chosen, all other elements of the xml
+        Configurator will be made responsive, except for the textbox, where the filepath of the xsl file is stored in,
+        to prevent the user from changing the filepath without the file dialog
+        
+        Returns:
+            nothing or void"""
         try:
             self.xml_parameter_listbox.config(state="normal")
             self.valid_xsl_file = super().getXSLFile(self.listbox, self.xsl_stylesheet_textbox)
@@ -1207,16 +1276,29 @@ class gui(reader_and_gui_interface):
             showerror("Error!", e)
     
     def showXMLParameter(self, selection_event):
+        """shows the found xml Parameters from the stylesheet in the listbox for the xml Parameters
+        
+        Returns:
+            nothing or void"""
         super().chooseXMLParameter(self.listbox, self.xml_parameter_listbox, self.xml_parameters_textbox, self.filename)
         self.updatePreview()
     
     def setXMLParameter(self, return_event):
+        """lets the user choose a xml parameter from the listbox. The value of the parameter will be shown in the textbox
+        below in the gui to let the user change it
+        
+        Returns:
+            nothing or void"""
         super().changeXMLParameter(self.listbox, self.xml_parameter_listbox, self.xml_parameters_textbox, self.filename)
         super().chooseXMLParameter(self.listbox, self.xml_parameter_listbox, self.xml_parameters_textbox, self.filename)
         self.root.focus_set()   
         self.updatePreview()
     
     def setXMLHeader(self):
+        """gets the value of the xml header checkbox and activates or deactivates the header accordingly
+        
+        Returns:
+            nothing or void"""
         try:
             super().setXMLUserHeader(self.listbox, self.xml_header_var) 
         except tk.TclError:
@@ -1226,6 +1308,10 @@ class gui(reader_and_gui_interface):
         self.updatePreview()
     
     def xmlReset(self):
+        """resets every parameter from the chosen xml file and resets the header
+        
+        Returns:
+            nothing or void"""
         try:
             selected_file = super().xmlResetFunctionality(self.listbox)
             if self.valid_xsl_file:
@@ -1244,6 +1330,11 @@ class gui(reader_and_gui_interface):
         
     
     def listboxSelectionChanged(self, select_event):
+        """This method will be called everytime the user selects a entry in the main listbox for the files.
+        It sets the according configurator to the values of its parameters
+        
+        Returns:
+            nothing or void"""
         try:
             listbox_selection_index = self.listbox.curselection()
             self.filename = self.listbox.get(listbox_selection_index)
@@ -1260,6 +1351,7 @@ class gui(reader_and_gui_interface):
                 endswith_slice *= -1
                 
             selected_file = self.listbox.get(listbox_selection_index)
+            #makes the csv configurator responsive and the xml configurator unresponsive, if a csv file is selected
             if selected_file.endswith(".csv") or selected_file.endswith(".csv_", endswith_slice, -1):
                 self.xsl_stylesheet_textbox.config(state="normal")
                 self.xsl_stylesheet_textbox.delete(0, tk.END)
@@ -1277,6 +1369,7 @@ class gui(reader_and_gui_interface):
                 for elem in self.csv_parameters_list:
                     elem.config(state="normal")
                 
+                #updates every parameter box with the values of the file
                 super().updateEncodingTextbox(self.encoding_textbox, selected_file)
                 super().updateDelimiterTextbox(self.delimiter_textbox, selected_file)
                 super().updateQuotecharTextbox(self.quotechar_textbox, selected_file)
@@ -1284,7 +1377,8 @@ class gui(reader_and_gui_interface):
                 super().updateSkipSpacesCheckbox(self.skip_spaces_var, selected_file)
                 super().updateLineTerminatorTextbox(self.line_terminator_textbox, selected_file)
                 super().updateQuotingRadioButtons(self.quoting_var, selected_file)
-                
+            
+            #makes the xml configurator responsive and the csv configurator unresponsive, if a xml file is selected 
             if selected_file.endswith(".xml") or selected_file.endswith(".xml_", endswith_slice, -1):
                 self.encoding_textbox.delete(0, tk.END)
                 self.delimiter_textbox.delete(0, tk.END)
@@ -1308,6 +1402,7 @@ class gui(reader_and_gui_interface):
                 self.xsl_stylesheet_textbox.config(state="readonly")
                 self.button_add_xsl_File.config(state="normal")
 
+                #only updates the boxes for the parameters of the xml file if a valid xsl Stylesheet is selected
                 if self.valid_xsl_file:
                     super().updateXSLFileTextbox(self.xsl_stylesheet_textbox, selected_file)
                     self.xml_parameters_listbox_label.config(fg="black")
@@ -1317,6 +1412,13 @@ class gui(reader_and_gui_interface):
                     super().updateXMLUserHeader(self.xml_header_var, self.listbox)
                     
     def ImportAs(self):
+        """This function will be called if the "Import As..." Button is clicked.
+        if defines a toplevel window to let the user decide into what data type the dataframe should be converted to.
+        The available data types are: dictionary, list of lists, numpy array and dataframe
+        
+        Returns:
+            nothing or void"""
+        #checks if the listbox is empty
         end_index = self.listbox.index("end")
         if end_index == 0:
             showinfo("Information", "No Files to import are available")
@@ -1342,11 +1444,16 @@ class gui(reader_and_gui_interface):
             cancel_button.grid(row=5, column=4, padx=10, pady=10)
     
     def finalImporter(self):
+        """gets the radiobutton value of the "Import As..." Toplevel window and converts the dataframe to the selected data type
+        
+        Returns:
+            nothing or void"""
         try:
             super().finalImporterFunctionality(self.import_var.get())
         except ValueError as value_error:
             showerror("Error!", value_error)
             return
+        #shows information into which data type the dataframe has been converted to
         if self.import_var.get() == 1:
             showinfo("Information", "The selected Files were imported as a Dictionary")
         elif self.import_var.get() == 2:
@@ -1357,6 +1464,11 @@ class gui(reader_and_gui_interface):
             showinfo("Information", "The selected Files were imported as a Pandas Dataframe")
     
     def ExportAs(self):
+        """This method is called, if the "Export As..." button is clicked and defines a toplevel window, to let
+        the user decide if he wants to export the dataframe as a csv or xml file and with what parameters
+        
+        Returns:
+            nothing or void"""
         end_index = self.listbox.index("end")
         if end_index == 0:
             showinfo("Information", "No Files to import are available")
@@ -1366,6 +1478,7 @@ class gui(reader_and_gui_interface):
             export_as_window.title("Export as...")
             tab_parent = ttk.Notebook(export_as_window)
             
+            #parts the toplevel into tabs to let the user switch between csv or xml file
             csv_tab = tk.Frame(tab_parent)
             xml_tab = tk.Frame(tab_parent)
             
@@ -1374,40 +1487,46 @@ class gui(reader_and_gui_interface):
             
             tab_parent.pack(expand=1, fill="both")
             
+            #lets the user decide the encoding of the csv file, default is UTF-8
             csv_export_encoding_label = tk.Label(csv_tab, text="Encoding:")
             csv_export_encoding_label.grid(row=1, column=1, padx=10, pady=10)
             self.csv_export_encoding = tk.Entry(csv_tab)
             self.csv_export_encoding.insert(0, "UTF-8")
             self.csv_export_encoding.grid(row=1, column=2, padx=10, pady=10)
             
+            #lets the user decide the delimiter of the csv file, default is ","
             csv_export_delimiter_label = tk.Label(csv_tab, text="Delimiter:")
             csv_export_delimiter_label.grid(row=2, column=1, padx=10, pady=10)
             self.csv_export_delimiter = tk.Entry(csv_tab, width=2)
             self.csv_export_delimiter.insert(0, ",")
             self.csv_export_delimiter.grid(row=2, column=2, padx=10, pady=10)
             
+            #lets the user decide the character, which will be used for quoting of the csv file, default is "
             csv_export_quotechar_label = tk.Label(csv_tab, text="Quotechar:")
             csv_export_quotechar_label.grid(row=3, column=1, padx=10, pady=10)
             self.csv_export_quotechar = tk.Entry(csv_tab, width=2)
             self.csv_export_quotechar.insert(0, "\"")
             self.csv_export_quotechar.grid(row=3, column=2, padx=10, pady=10)
             
+            #lets the user decide the character, which will be used for line termination of the csv file, default is "\r\n"
             csv_export_line_terminator_label = tk.Label(csv_tab, text="Line Terminator:")
             csv_export_line_terminator_label.grid(row=4, column=1, padx=10, pady=10)
             self.csv_export_line_terminator = tk.Entry(csv_tab, width=2)
             self.csv_export_line_terminator.insert(0, "")
             self.csv_export_line_terminator.grid(row=4, column=2, padx=10, pady=10)
             
-
+            #lets the user decide the encoding of the xml file, default is UTF-8
             xml_export_encoding_label = tk.Label(xml_tab, text="Encoding:")
             xml_export_encoding_label.grid(row=1, column=1, padx=10, pady=10)
             self.xml_export_encoding = tk.Entry(xml_tab)
             self.xml_export_encoding.insert(0, "UTF-8")
             self.xml_export_encoding.grid(row=1, column=2, padx=10, pady=10)
             
+            #calls finalCSVExport
             csv_export_button = tk.Button(csv_tab, text="Export", command=self.finalCSVExport)
             csv_export_button.grid(row=5, column=1, padx=10, pady=10)
             
+            #calls finalXMLExport
             xml_export_button = tk.Button(xml_tab, text="Export", command=self.finalXMLExport)
             xml_export_button.grid(row=5, column=1, padx=10, pady=10)
             
@@ -1415,6 +1534,10 @@ class gui(reader_and_gui_interface):
             cancel_button.pack(side=tk.RIGHT, padx=10, pady=10)
     
     def finalCSVExport(self):
+        """exports the selected files as a csv file to the filepath the user gives, with the given parameters of the toplevel window
+        
+        Returns:
+            nothing or void"""
         try:
             super().finalCSVExportFunctionality(self.csv_export_encoding.get(), 
                                                 self.csv_export_delimiter.get(),
@@ -1429,6 +1552,10 @@ class gui(reader_and_gui_interface):
         showinfo("Information", "The selected Files were exported as a CSV File")
     
     def finalXMLExport(self):
+        """exports the selected files as a xml file to the filepath the user gives, with the given parameters of the toplevel window
+        
+        Returns:
+            nothing or void"""
         try:
             super().finalXMLExportFunctionality(self.xml_export_encoding.get())
         except LookupError as look_up_error:
@@ -1440,6 +1567,6 @@ class gui(reader_and_gui_interface):
         showinfo("Information", "The selected Files were exported as a XML File")
 
 
-
+#executes the program, if it is not imported as a module, and shows the gui window
 if __name__ == "__main__":
-    app = gui()
+    GUI = gui()

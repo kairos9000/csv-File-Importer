@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from chardet import detect
 from math import log, ceil, floor 
-import csv_xml_importer as cxi
+import reader_support_file as rsf
 import lxml.etree
 from lxml import etree
 import xml.etree.ElementTree as ET
@@ -33,7 +33,7 @@ class reader():
         self.multiple_files_counter : int = 0
         self.main_dataframe = pd.DataFrame()
         self.column_amount : int = 0
-        self.importer = cxi.dataframeAndHeaderHandler()
+        self.importer = rsf.dataframeAndHeaderHandler()
 
         
     def giveDataframe(self):

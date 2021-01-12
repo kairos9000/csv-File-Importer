@@ -1,10 +1,10 @@
 
 import reader
-import csv_importer_gui
+import csv_xml_importer_gui
+
+gui = csv_xml_importer_gui.gui()
+
 #importer = reader.reader()
-gui = csv_importer_gui.gui()
-
-
 # importer.read_with_init_settings("C:/Users/Philip/Desktop/testfiles_20201221/ttt - Copy.csv")
 # importer.read_with_init_settings("regex_test.csv")
 # importer.update_csv_with_personal_settings("C:/Users/Philip/Desktop/testfiles_20201221/ttt.csv", False)

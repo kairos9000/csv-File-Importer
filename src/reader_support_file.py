@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-#
 
 import pandas as pd
-import io
 import csv
 import re
 from math import log, ceil

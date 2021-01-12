@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-#
 
 import pandas as pd
-import io
 import csv
 import re
 from pathlib import Path
@@ -79,6 +78,7 @@ class reader():
                 self.opened_files_dict[filename] = {}
         else:
             raise ValueError(filename+" is not a CSV or XML File!")
+
         return self.opened_files_dict
     
     

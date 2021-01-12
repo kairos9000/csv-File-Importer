@@ -2,7 +2,6 @@
 
 import tkinter as tk
 import pandas as pd
-import io
 from tkinter import ttk 
 from pandastable import Table, TableModel
 import reader

@@ -1,0 +1,9 @@
+Number_0,Number_1,Text_0,Text_1,Date_0,Time_0,Text_2,Coordinate_0,Email_0,Text_3,Text_4
+2,15.6,False,FALSCH,02.05.18,10:30:00,02.05.19 10:10,N46°14′06.70″ E008°00′55.60″,hans@werner.de,ftp.google.dcom,Der
+3,5.0,True,WAHR,03.05.18,11:30:00,03.05.19 10:15,N46°14′06.70″ E008°00′55.60″,hans@werner.de,ssh.google.werner.de,Nichts
+4,8255213.1,True,FALSCH,04.05.18,12:30:00,04.05.19 10:20,N46°14′06.70″ E008°00′55.60″,hans@werner.de,www.google.de,Aussagt
+5,1326.5,True,FALSCH,05.05.18,13:30:00,05.05.19 10:25,N46°14′06.70″ E008°00′55.60″,hans@werner.de,www.google.de,!
+6,2.0,True,FALSCH,06.05.18,14:30:00,06.05.19 10:30,N46°14′06.70″ E008°00′55.60″,hans@werner.de,www.google.de,!
+7,5.0,True,FALSCH,07.05.18,15:30:00,07.05.19 10:35,N46°14′06.70″ E008°00′55.60″,hans@werner.de,www.google.de,!
+8,4.0,True,FALSCH,08.05.18,16:30:00,08.05.19 10:40,N46°14′06.70″ E008°00′55.60″,hans@werner.de,www.google.de,!
+9,7.0,True,WAHR,09.05.18,17:30:00,09.05.19 10:45,N46°14′06.70″ E008°00′55.60″,hans@werner.de,www.google.de,!

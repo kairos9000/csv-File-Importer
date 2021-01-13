@@ -738,10 +738,10 @@ class reader_and_gui_interface():
         
         Parameters:
             import_var_value: the value, which decides what data type the dataframe will be converted to
-                            1: import as a dictionary
-                            2: import as a List of Lists
-                            3: import as a Numpy Array
-                            4: import as a Dataframe
+                            1: Convert to a dictionary
+                            2: Convert to a List of Lists
+                            3: Convert to a Numpy Array
+                            4: Convert to a Dataframe
         
         Returns:
             nothing or void"""
@@ -1046,7 +1046,7 @@ class gui(reader_and_gui_interface):
         
         #opens a toplevel window to let the user decide to which data type the dataframe should be imported
         self.button_import_as = tk.Button(
-            self.import_export_buttons_frame, text="Import as...", command=self.ImportAs)
+            self.import_export_buttons_frame, text="Convert to...", command=self.ImportAs)
         self.button_import_as.pack(side=tk.LEFT, padx=5, pady=10)
         #opens a toplevel window to let the user export the dataframe as a csv or xml file
         self.button_export_as = tk.Button(
@@ -1436,7 +1436,7 @@ class gui(reader_and_gui_interface):
                     super().updateXMLUserHeader(self.xml_header_var, self.listbox)
                     
     def ImportAs(self):
-        """This function will be called if the "Import As..." Button is clicked.
+        """This function will be called if the "Convert to..." Button is clicked.
         if defines a toplevel window to let the user decide into what data type the dataframe should be converted to.
         The available data types are: dictionary, list of lists, numpy array and dataframe
         
@@ -1445,11 +1445,11 @@ class gui(reader_and_gui_interface):
         #checks if the listbox is empty
         end_index = self.listbox.index("end")
         if end_index == 0:
-            showinfo("Information", "No Files to import are available")
+            showinfo("Information", "No Files to convert are available")
         else:
             import_as_window = tk.Toplevel()
             import_as_window.geometry('300x300')
-            import_as_window.title("Import as...")
+            import_as_window.title("Convert to...")
             self.import_var = tk.IntVar()
             self.import_var.set(1)
             dictionary_import_button = tk.Radiobutton(import_as_window, text="Dictionary", variable=self.import_var, value=1)
@@ -1461,14 +1461,14 @@ class gui(reader_and_gui_interface):
             pandas_dataframe_import_button = tk.Radiobutton(import_as_window, text="Pandas Dataframe", variable=self.import_var, value=4)
             pandas_dataframe_import_button.grid(row=4, column=1, padx=10, pady=10)
             
-            import_button = tk.Button(import_as_window, text="Import", command=self.finalImporter)
+            import_button = tk.Button(import_as_window, text="Convert", command=self.finalImporter)
             import_button.grid(row=5, column=3, padx=10, pady=10)
             
             cancel_button = tk.Button(import_as_window, text="Cancel", command=import_as_window.destroy)
             cancel_button.grid(row=5, column=4, padx=10, pady=10)
     
     def finalImporter(self):
-        """gets the radiobutton value of the "Import As..." Toplevel window and converts the dataframe to the selected data type
+        """gets the radiobutton value of the "Convert to..." Toplevel window and converts the dataframe to the selected data type
         
         Returns:
             nothing or void"""
@@ -1479,13 +1479,13 @@ class gui(reader_and_gui_interface):
             return
         #shows information into which data type the dataframe has been converted to
         if self.import_var.get() == 1:
-            showinfo("Information", "The selected Files were imported as a Dictionary")
+            showinfo("Information", "The selected Files were converted to a Dictionary")
         elif self.import_var.get() == 2:
-            showinfo("Information", "The selected Files were imported as a List of Lists")
+            showinfo("Information", "The selected Files were converted to a List of Lists")
         elif self.import_var.get() == 3:
-            showinfo("Information", "The selected Files were imported as a Numpy Array")
+            showinfo("Information", "The selected Files were converted to a Numpy Array")
         elif self.import_var.get() == 4:
-            showinfo("Information", "The selected Files were imported as a Pandas Dataframe")
+            showinfo("Information", "The selected Files were converted to a Pandas Dataframe")
     
     def ExportAs(self):
         """This method is called, if the "Export As..." button is clicked and defines a toplevel window, to let
@@ -1495,7 +1495,7 @@ class gui(reader_and_gui_interface):
             nothing or void"""
         end_index = self.listbox.index("end")
         if end_index == 0:
-            showinfo("Information", "No Files to import are available")
+            showinfo("Information", "No Files to export are available")
         else:
             export_as_window = tk.Toplevel()
             export_as_window.geometry('500x300')
